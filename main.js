@@ -26,10 +26,13 @@
 
 var main = function ()
 {
+	var directions_div = document.body.appendChild(document.createElement('div'));
 	var file_input_div = document.body.appendChild(document.createElement('div'));
 	var canvas_div = document.body.appendChild(document.createElement('div'));
 	var info_div = document.body.appendChild(document.createElement('div'));
 	var control_div = document.body.appendChild(document.createElement('div'));
+
+	directions_div.innerHTML = "Drag a Spriter SCML file and associated image directories to canvas.";
 
 	var canvas_w = 640;
 	var canvas_h = 480;
@@ -63,6 +66,7 @@ var main = function ()
 		set_camera(pose);
 	});
 
+	file_input_div.style.display = 'none';
 	var file_input = file_input_div.appendChild(document.createElement('input'));
 	file_input.type = 'file';
 	file_input.directory = file_input.webkitdirectory = "directory";
@@ -98,6 +102,47 @@ var main = function ()
 			break;
 		}
 	}, 
+	false);
+
+	canvas_div.addEventListener('drop', function (e)
+	{
+		e.preventDefault();
+
+		var items = e.dataTransfer.items;
+
+		for (var i = 0, ct = items.length; i < ct; ++i)
+		{
+			var entry = items[i].webkitGetAsEntry();
+
+			if (!entry.isFile)
+			{
+				continue;
+			}
+
+			var ext = entry.name.split('.').pop();
+
+			if (ext.toLowerCase() != 'scml')
+			{
+				continue;
+			}
+
+			file_label.innerHTML = entry.name;
+
+			info_div.innerHTML = "Loading...";
+
+			var data = new spriter.data();
+
+			data.loadFromFileEntry(entry, (function (data) { return function ()
+			{
+				pose = new spriter.pose(data);
+				info_div.innerHTML = "Animation Name: " + pose.getAnimName();
+				set_camera(pose);
+			}
+			})(data));
+
+			break;
+		}
+	},
 	false);
 
 	var canvas = canvas_div.appendChild(document.createElement('canvas'));

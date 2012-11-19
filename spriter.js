@@ -822,7 +822,6 @@ spriter.data.prototype.loadFromURL = function (url, callback)
 			for (var file_idx = 0, file_len = file_array.length; file_idx < file_len; ++file_idx)
 			{
 				var file = file_array[file_idx];
-				var texture_name = file.name;
 
 				inc_count(); // texture_file
 				var image = file.image = new Image();
@@ -835,17 +834,9 @@ spriter.data.prototype.loadFromURL = function (url, callback)
 					dec_count(); // texture_file
 				}
 				})(file), false);
-				image.addEventListener('error', function (e)
-				{
-					dec_count(); // texture_file
-				},
-				false);
-				image.addEventListener('abort', function (e)
-				{
-					dec_count(); // texture_file
-				},
-				false);
-				image.src = base_path + '/' + texture_name;
+				image.addEventListener('error', function (e) { dec_count(); }, false); // texture_file
+				image.addEventListener('abort', function (e) { dec_count(); }, false); // texture_file
+				image.src = base_path + '/' + file.name;
 			}
 		}
 
@@ -906,8 +897,7 @@ spriter.data.prototype.loadFromFileList = function (input_file, input_files, cal
 			for (var file_idx = 0, file_len = file_array.length; file_idx < file_len; ++file_idx)
 			{
 				var file = file_array[file_idx];
-				var texture_name = file.name;
-				var texture_file = find_file(input_files, texture_name);
+				var texture_file = find_file(input_files, file.name);
 				if (texture_file)
 				{
 					inc_count(); // texture_file
@@ -924,16 +914,8 @@ spriter.data.prototype.loadFromFileList = function (input_file, input_files, cal
 							dec_count(); // texture_file
 						},
 						false);
-						image.addEventListener('error', function (e)
-						{
-							dec_count(); // texture_file
-						}, 
-						false);
-						image.addEventListener('abort', function (e)
-						{
-							dec_count(); // texture_file
-						}, 
-						false);
+						image.addEventListener('error', function (e) { dec_count(); }, false); // texture_file
+						image.addEventListener('abort', function (e) { dec_count(); }, false); // texture_file
 						image.src = e.target.result;
 					}
 					})(file), false);
@@ -946,6 +928,87 @@ spriter.data.prototype.loadFromFileList = function (input_file, input_files, cal
 	},
 	false);
 	file_reader.readAsText(input_file);
+}
+
+/**
+ * @return {void}
+ * @param {FileEntry} entry
+ * @param {function()} callback
+ */
+spriter.data.prototype.loadFromFileEntry = function (entry, callback)
+{
+	var that = this;
+
+	var count = 0;
+	var inc_count = function () { count++; }
+	var dec_count = function () { if (--count == 0) { callback(); } }
+
+	inc_count(); // entry
+
+	entry.file(function (file)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('load', function (e)
+		{
+			that.parseSCML(e.target.result);
+
+			// load textures from file entry filesystem root
+
+			var folder_array = that.folder_array;
+			for (var folder_idx = 0, folder_len = folder_array.length; folder_idx < folder_len; ++folder_idx)
+			{
+				var folder = folder_array[folder_idx];
+				var file_array = folder.file_array;
+				for (var file_idx = 0, file_len = file_array.length; file_idx < file_len; ++file_idx)
+				{
+					var file = file_array[file_idx];
+					inc_count(); // texture_entry
+					entry.filesystem.root.getFile(file.name, {}, 
+					(function (file) { return function(texture_entry)
+					{
+						inc_count(); // texture_file
+						texture_entry.file(function (texture_file)
+						{
+							var texture_file_reader = new FileReader();
+							texture_file_reader.addEventListener('load', function (e)
+							{
+								var image = file.image = new Image();
+								image.hidden = true;
+								image.addEventListener('load', function (e)
+								{
+									file.width = file.width || e.target.width;
+									file.height = file.height || e.target.height;
+									e.target.hidden = false;
+									dec_count(); // texture_file
+								},
+								false);
+								image.addEventListener('error', function (e) { dec_count(); }, false); // texture_file
+								image.addEventListener('abort', function (e) { dec_count(); }, false); // texture_file
+								image.src = e.target.result;
+							},
+							false);
+							texture_file_reader.readAsDataURL(texture_file);
+						}, 
+						function ()
+						{
+							dec_count(); // texture_file
+						});
+						dec_count(); // texture_entry
+					}
+					})(file), 
+					(function (file) { return function (e)
+					{
+						window.console.log("error code: " + e.code + ", could not load texture: " + file.name);
+						dec_count(); // texture_entry
+					}
+					})(file));
+				}
+			}
+			dec_count(); // entry
+		},
+		false);
+		reader.readAsText(file);
+	});
 }
 
 /**
