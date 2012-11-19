@@ -52,6 +52,7 @@ var main = function ()
 
 	var pose = new spriter.pose();
 
+	info_div.innerHTML = "Loading...";
 	//var url = "test/test.scml";
 	var url = "rapido/rapido.scml";
 	var data = new spriter.data();
@@ -84,6 +85,7 @@ var main = function ()
 
 			file_label.innerHTML = input_file.name;
 
+			info_div.innerHTML = "Loading...";
 			var data = new spriter.data();
 			data.loadFromFileList(input_file, input_files, (function (data) { return function ()
 			{
