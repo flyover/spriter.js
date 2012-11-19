@@ -688,7 +688,8 @@ spriter.animation.prototype.load = function (json)
 	this.looping = spriter.toString(json['@looping'], "true");
 	this.loop_to = spriter.toInt(json['@loop_to'], 0);
 
-	this.mainline = new spriter.mainline().load(json['mainline']);
+	json.mainline = json.mainline || {};
+	this.mainline = new spriter.mainline().load(json.mainline);
 
 	this.timeline_array = [];
 	json.timeline = spriter.toArray(json.timeline);
@@ -800,7 +801,7 @@ spriter.data.prototype.loadFromURL = function (url, callback)
 
 	var req = new XMLHttpRequest();
 	req.open("GET", url, true);
-	req.onreadystatechange = function ()
+	req.addEventListener('readystatechange', function ()
 	{
 		if (req.readyState != 4) return;
 		if (req.status != 200 && req.status != 304)
@@ -849,7 +850,8 @@ spriter.data.prototype.loadFromURL = function (url, callback)
 		}
 
 		dec_count(); // url
-	};
+	}, 
+	false);
 	if (req.readyState == 4)
 	{
 		return;
