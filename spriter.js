@@ -1101,6 +1101,53 @@ spriter.data.prototype.getAnimLength = function (entity_index, anim_index)
 }
 
 /**
+ * @return {number} 
+ * @param {number} entity_index 
+ * @param {number} anim_index 
+ */
+spriter.data.prototype.getNumAnimKeys = function (entity_index, anim_index)
+{
+	var entity_array = this.entity_array;
+	if (entity_array && (entity_index < entity_array.length))
+	{
+		var entity = entity_array[entity_index];
+		var animation_array = entity.animation_array;
+		if (animation_array && (anim_index < animation_array.length))
+		{
+			var anim = animation_array[anim_index];
+			return anim.mainline.key_array.length;
+		}
+	}
+	return 0;
+}
+
+/**
+ * @return {number} 
+ * @param {number} entity_index 
+ * @param {number} anim_index 
+ * @param {number} key_index 
+ */
+spriter.data.prototype.getAnimKeyTime = function (entity_index, anim_index, key_index)
+{
+	var entity_array = this.entity_array;
+	if (entity_array && (entity_index < entity_array.length))
+	{
+		var entity = entity_array[entity_index];
+		var animation_array = entity.animation_array;
+		if (animation_array && (anim_index < animation_array.length))
+		{
+			var anim = animation_array[anim_index];
+			var key_array = anim.mainline.key_array;
+			if (key_array && (key_index < key_array.length))
+			{
+				return key_array[key_index].time;
+			}
+		}
+	}
+	return 0;
+}
+
+/**
  * @constructor 
  * @param {spriter.data=} data 
  */
@@ -1309,11 +1356,75 @@ spriter.pose.prototype.getAnimLength = function (anim_index)
 }
 
 /**
+ * @return {number} 
+ * @param {number=} anim_index 
+ */
+spriter.pose.prototype.getNumAnimKeys = function (anim_index)
+{
+	var entity_index = this.m_entity_index;
+	anim_index = (anim_index !== undefined)?(anim_index):(this.m_anim_index);
+	if (this.m_data)
+	{
+		return this.m_data.getNumAnimKeys(entity_index, anim_index);
+	}
+	return 0;
+}
+
+/**
+ * @return {number} 
+ * @param {number=} anim_index 
+ */
+spriter.pose.prototype.getAnimKeyTime = function (anim_index, key_index)
+{
+	var entity_index = this.m_entity_index;
+	anim_index = (anim_index !== undefined)?(anim_index):(this.m_anim_index);
+	if (this.m_data)
+	{
+		return this.m_data.getAnimKeyTime(entity_index, anim_index, key_index);
+	}
+	return 0;
+}
+
+/**
  * @return {number}
  */
 spriter.pose.prototype.getTime = function ()
 {
 	return this.m_time;
+}
+
+/**
+ * @return {void} 
+ * @param {number} time 
+ */
+spriter.pose.prototype.setTime = function (time)
+{
+	if (this.m_time != time)
+	{
+		this.m_time = time;
+		this.m_dirty = true;
+	}
+}
+
+/**
+ * @return {number}
+ */
+spriter.pose.prototype.getKey = function ()
+{
+	return this.m_mainline_key_index;
+}
+
+/**
+ * @return {void} 
+ * @param {number} time 
+ */
+spriter.pose.prototype.setKey = function (key_index)
+{
+	if (this.m_mainline_key_index != key_index)
+	{
+		this.m_time = this.getAnimKeyTime(this.m_anim_index, key_index);
+		this.m_dirty = true;
+	}
 }
 
 /**
@@ -1338,7 +1449,7 @@ spriter.pose.prototype.update = function (elapsed_time)
 /**
  * @return {void}
  */
-spriter.pose.prototype.tween = function ()
+spriter.pose.prototype.strike = function ()
 {
 	if (!this.m_dirty) { return; }
 	this.m_dirty = false;
@@ -1387,6 +1498,7 @@ spriter.pose.prototype.tween = function ()
 				var time1 = timeline_key.time;
 				var bone1 = timeline_key.bone;
 				tweened_bone.copy(bone1);
+				tweened_bone.parent = bone.parent; // set parent from bone_ref
 
 				// see if there's something to tween with
 				var timeline_key2 = timeline_key_array[key_index + 1];
@@ -1440,6 +1552,7 @@ spriter.pose.prototype.tween = function ()
 				var time1 = timeline_key.time;
 				var object1 = timeline_key.object;
 				tweened_object.copy(object1);
+				tweened_object.parent = object.parent; // set parent from object_ref
 
 				// see if there's something to tween with
 				var timeline_key2 = timeline_key_array[key_index + 1];
@@ -1470,279 +1583,6 @@ spriter.pose.prototype.tween = function ()
 		if (tweened_object_array.length > object_array.length)
 		{
 			tweened_object_array.length = object_array.length;
-		}
-	}
-}
-
-/**
- * @return {object} 
- * @param {object} extent 
- */
-spriter.pose.prototype.getExtents = function (extent)
-{
-	extent = extent || { min: { x: 1, y: 1 }, max: { x: -1, y: -1 } };
-
-	var bound = function (v)
-	{
-		if (extent.min.x > extent.max.x)
-		{
-			extent.min.x = extent.max.x = v.x;
-			extent.min.y = extent.max.y = v.y;
-		}
-		else
-		{
-			extent.min.x = Math.min(extent.min.x, v.x);
-			extent.max.x = Math.max(extent.max.x, v.x);
-			extent.min.y = Math.min(extent.min.y, v.y);
-			extent.max.y = Math.max(extent.max.y, v.y);
-		}
-	}
-
-	var mtx = new fo.m3x2();
-	var ll = new fo.v2(-1, -1);
-	var lr = new fo.v2( 1, -1);
-	var ul = new fo.v2(-1,  1);
-	var ur = new fo.v2( 1,  1);
-	var tv = new fo.v2(0, 0);
-
-	this.tween();
-
-	if (this.m_data && this.m_data.folder_array)
-	{
-		var folder_array = this.m_data.folder_array;
-
-		var tweened_object_array = this.m_tweened_object_array;
-		for (var tweened_object_idx = 0, tweened_object_len = tweened_object_array.length; tweened_object_idx < tweened_object_len; ++tweened_object_idx)
-		{
-			var object = tweened_object_array[tweened_object_idx];
-
-			var folder = folder_array[object.folder];
-			var file_array = folder.file_array;
-			var file = file_array[object.file];
-			var file_width = file.width;
-			var file_height = file.height;
-
-			mtx.makeIdentity();
-
-			// apply object transform
-			mtx.selfTranslate(object.x, object.y);
-			mtx.selfRotateDegrees(object.angle);
-			mtx.selfScale(object.scale_x, object.scale_y);
-
-			// image extents
-			var ex = 0.5 * file_width;
-			var ey = 0.5 * file_height;
-			mtx.selfScale(ex, ey);
-
-			// local pivot in unit (-1 to +1) coordinates
-			var lpx = (object.pivot_x * 2) - 1;
-			var lpy = (object.pivot_y * 2) - 1;
-			mtx.selfTranslate(-lpx, -lpy);
-
-			bound(mtx.applyVector(ul, tv));
-			bound(mtx.applyVector(ur, tv));
-			bound(mtx.applyVector(lr, tv));
-			bound(mtx.applyVector(ll, tv));
-		}
-	}
-
-	return extent;
-}
-
-/**
- * @return {void}
- * @param {CanvasRenderingContext2D} ctx_2d
- */
-spriter.pose.prototype.draw = function (ctx_2d)
-{
-	this.tween();
-
-	if (this.m_data && this.m_data.folder_array)
-	{
-		var folder_array = this.m_data.folder_array;
-
-		var tweened_object_array = this.m_tweened_object_array;
-		for (var tweened_object_idx = 0, tweened_object_len = tweened_object_array.length; tweened_object_idx < tweened_object_len; ++tweened_object_idx)
-		{
-			var object = tweened_object_array[tweened_object_idx];
-
-			var folder = folder_array[object.folder];
-			var file_array = folder.file_array;
-			var file = file_array[object.file];
-			var file_width = file.width;
-			var file_height = file.height;
-
-			ctx_2d.save();
-
-				// apply object transform
-				ctx_2d.translate(object.x, object.y);
-				ctx_2d.rotate(object.angle * Math.PI / 180);
-				ctx_2d.scale(object.scale_x, object.scale_y);
-
-				// image extents
-				var ex = 0.5 * file_width;
-				var ey = 0.5 * file_height;
-				//ctx_2d.scale(ex, ey);
-
-				// local pivot in unit (-1 to +1) coordinates
-				var lpx = (object.pivot_x * 2) - 1;
-				var lpy = (object.pivot_y * 2) - 1;
-				//ctx_2d.translate(-lpx, -lpy);
-				ctx_2d.translate(-lpx*ex, -lpy*ey);
-
-				if (file.image && !file.image.hidden)
-				{
-					ctx_2d.scale(1, -1); // -y for canvas space
-
-					//ctx_2d.drawImage(file.image, -1, -1, 2, 2);
-					ctx_2d.drawImage(file.image, -ex, -ey, 2*ex, 2*ey);
-				}
-				else
-				{
-					ctx_2d.fillStyle = 'rgba(0,0,0,0.1)';
-					//ctx_2d.fillRect(-1, -1, 2, 2);
-					ctx_2d.fillRect(-ex, -ey, 2*ex, 2*ey);
-				}
-
-			ctx_2d.restore();
-		}
-	}
-}
-
-/**
- * @return {void}
- * @param {CanvasRenderingContext2D} ctx_2d
- */
-spriter.pose.prototype.drawDebug = function (ctx_2d)
-{
-	this.tween();
-
-	if (this.m_data && this.m_data.folder_array)
-	{
-		var folder_array = this.m_data.folder_array;
-
-		// draw objects
-		var tweened_object_array = this.m_tweened_object_array;
-		for (var tweened_object_idx = 0, tweened_object_len = tweened_object_array.length; tweened_object_idx < tweened_object_len; ++tweened_object_idx)
-		{
-			var object = tweened_object_array[tweened_object_idx];
-
-			var folder = folder_array[object.folder];
-			var file_array = folder.file_array;
-			var file = file_array[object.file];
-			var file_width = file.width;
-			var file_height = file.height;
-
-			ctx_2d.save();
-
-				// apply object transform
-				ctx_2d.translate(object.x, object.y);
-				ctx_2d.rotate(object.angle * Math.PI / 180);
-				ctx_2d.scale(object.scale_x, object.scale_y);
-
-				// image extents
-				var ex = 0.5 * file_width;
-				var ey = 0.5 * file_height;
-				//ctx_2d.scale(ex, ey);
-
-				// local pivot in unit (-1 to +1) coordinates
-				var lpx = (object.pivot_x * 2) - 1;
-				var lpy = (object.pivot_y * 2) - 1;
-				//ctx_2d.translate(-lpx, -lpy);
-				ctx_2d.translate(-lpx*ex, -lpy*ey);
-
-				ctx_2d.scale(1, -1); // -y for canvas space
-
-				if (file.image && !file.image.hidden && false)
-				{
-					//ctx_2d.drawImage(file.image, -1, -1, 2, 2);
-					ctx_2d.drawImage(file.image, -ex, -ey, 2*ex, 2*ey);
-				}
-				else
-				{
-					//ctx_2d.lineWidth = 2;
-					//ctx_2d.lineCap = 'round';
-					//ctx_2d.strokeStyle = 'blue';
-					//ctx_2d.strokeRect(-1, -1, 2, 2);
-					//ctx_2d.strokeRect(-ex, -ey, 2*ex, 2*ey);
-					ctx_2d.fillStyle = 'rgba(0,0,0,0.1)';
-					//ctx_2d.fillRect(-1, -1, 2, 2);
-					ctx_2d.fillRect(-ex, -ey, 2*ex, 2*ey);
-				}
-
-				ctx_2d.beginPath();
-				ctx_2d.moveTo(0, 0);
-				ctx_2d.lineTo(32, 0);
-				ctx_2d.lineWidth = 2;
-				ctx_2d.lineCap = 'round';
-				ctx_2d.strokeStyle = 'rgba(127,0,0,0.1)';
-				ctx_2d.stroke();
-
-				ctx_2d.beginPath();
-				ctx_2d.moveTo(0, 0);
-				ctx_2d.lineTo(0, -32);
-				ctx_2d.lineWidth = 2;
-				ctx_2d.lineCap = 'round';
-				ctx_2d.strokeStyle = 'rgba(0,127,0,0.1)';
-				ctx_2d.stroke();
-
-			ctx_2d.restore();
-		}
-
-		// draw bone hierarchy
-		var tweened_bone_array = this.m_tweened_bone_array;
-		for (var tweened_bone_idx = 0, tweened_bone_len = tweened_bone_array.length; tweened_bone_idx < tweened_bone_len; ++tweened_bone_idx)
-		{
-			var tweened_bone = tweened_bone_array[tweened_bone_idx];
-
-			var parent_index = tweened_bone.parent;
-			if (parent_index >= 0)
-			{
-				var parent_bone = tweened_bone_array[parent_index];
-
-				ctx_2d.save();
-
-					ctx_2d.beginPath();
-					ctx_2d.moveTo(bone.x, bone.y);
-					ctx_2d.lineTo(parent_bone.x, parent_bone.y);
-					ctx_2d.lineWidth = 2;
-					ctx_2d.lineCap = 'round';
-					ctx_2d.strokeStyle = 'grey';
-					ctx_2d.stroke();
-
-				ctx_2d.restore();
-			}
-		}
-
-		// draw bones
-		var tweened_bone_array = this.m_tweened_bone_array;
-		for (var tweened_bone_idx = 0, tweened_bone_len = tweened_bone_array.length; tweened_bone_idx < tweened_bone_len; ++tweened_bone_idx)
-		{
-			var tweened_bone = tweened_bone_array[tweened_bone_idx];
-
-			ctx_2d.save();
-
-				// apply bone transform
-				ctx_2d.translate(tweened_bone.x, tweened_bone.y);
-				ctx_2d.rotate(tweened_bone.angle * Math.PI / 180);
-
-				ctx_2d.beginPath();
-				ctx_2d.moveTo(0, 0);
-				ctx_2d.lineTo(tweened_bone.scale_x * 32, 0);
-				ctx_2d.lineWidth = 2;
-				ctx_2d.lineCap = 'round';
-				ctx_2d.strokeStyle = 'red';
-				ctx_2d.stroke();
-
-				ctx_2d.beginPath();
-				ctx_2d.moveTo(0, 0);
-				ctx_2d.lineTo(0, tweened_bone.scale_y * 32);
-				ctx_2d.lineWidth = 2;
-				ctx_2d.lineCap = 'round';
-				ctx_2d.strokeStyle = 'green';
-				ctx_2d.stroke();
-
-			ctx_2d.restore();
 		}
 	}
 }

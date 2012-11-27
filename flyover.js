@@ -32,16 +32,60 @@ fo.v2 = function (x, y)
 	this.y = y || 0;
 }
 
+fo.v2.ZERO = new fo.v2();
+
+fo.v2.prototype.makeZero = function ()
+{
+	this.x = 0;
+	this.y = 0;
+	return this;
+}
+
+fo.v2.prototype.selfTranslate = function (x, y)
+{
+	this.x += x;
+	this.y += y;
+	return this;
+}
+
+fo.v2.prototype.selfRotate = function (c, s)
+{
+	var x = this.x, y = this.y;
+	this.x = x*c - y*s;
+	this.y = x*s + y*c;
+	return this;
+}
+
+fo.v2.prototype.selfRotateRadians = function (rad)
+{
+	return this.selfRotate(Math.cos(rad), Math.sin(rad));
+}
+
+fo.v2.prototype.selfRotateDegrees = function (deg)
+{
+	return this.selfRotateRadians(deg * Math.PI / 180);
+}
+
+fo.v2.prototype.selfScale = function (x, y)
+{
+	this.x *= x;
+	this.y *= y;
+	return this;
+}
+
 fo.m3x2 = function ()
 {
 	this.a_x = 1; this.b_x = 0; this.c_x = 0;
 	this.a_y = 0; this.b_y = 1; this.c_y = 0;
 }
 
+fo.m3x2.IDENTITY = new fo.m3x2();
+
 fo.m3x2.prototype.makeIdentity = function ()
 {
 	this.a_x = 1; this.b_x = 0; this.c_x = 0;
 	this.a_y = 0; this.b_y = 1; this.c_y = 0;
+	return this;
 }
 
 fo.m3x2.prototype.selfTranslate = function (x, y)
@@ -66,12 +110,12 @@ fo.m3x2.prototype.selfRotate = function (c, s)
 
 fo.m3x2.prototype.selfRotateRadians = function (rad)
 {
-	this.selfRotate(Math.cos(rad), Math.sin(rad));
+	return this.selfRotate(Math.cos(rad), Math.sin(rad));
 }
 
 fo.m3x2.prototype.selfRotateDegrees = function (deg)
 {
-	this.selfRotateRadians(deg * Math.PI / 180);
+	return this.selfRotateRadians(deg * Math.PI / 180);
 }
 
 fo.m3x2.prototype.selfScale = function (x, y)
