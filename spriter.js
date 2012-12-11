@@ -374,6 +374,8 @@ spriter.object = function ()
 	this.pivot_y = 1;
 	/** @type {number} */
 	this.z_index = 0;
+	/** @type {number} */
+	this.a = 1;
 }
 
 /**
@@ -394,6 +396,7 @@ spriter.object.prototype.load = function (json)
 	this.pivot_x = spriter.toFloat(json['@pivot_x'], 0);
 	this.pivot_y = spriter.toFloat(json['@pivot_y'], 1);
 	this.z_index = spriter.toInt(json['@z_index'], 0);
+	this.a = spriter.toFloat(json['@a'], 1);
 	return this;
 }
 
@@ -424,6 +427,7 @@ spriter.object.prototype.copy = function (other)
 	this.pivot_x = other.pivot_x;
 	this.pivot_y = other.pivot_y;
 	this.z_index = other.z_index;
+	this.a = other.a;
 	return this;
 }
 
@@ -442,6 +446,7 @@ spriter.object.prototype.tween = function (other, tween, spin)
 	this.scale_y = spriter.tween(this.scale_y, other.scale_y, tween);
 	this.pivot_x = spriter.tween(this.pivot_x, other.pivot_x, tween);
 	this.pivot_y = spriter.tween(this.pivot_y, other.pivot_y, tween);
+	this.a = spriter.tween(this.a, other.a, tween);
 }
 
 /**
@@ -606,14 +611,22 @@ spriter.timeline_key.prototype.load = function (json)
 	this.spin = spriter.toInt(json['@spin'], 1);
 
 	var bone = json.bone;
-	if (0 === bone) { bone = {}; } // if bone is all defaults this happens
+	// if bone is all defaults this happens
+	if ((0 === bone) || (null === bone))
+	{
+		bone = {};
+	}
 	if (bone)
 	{
 		this.bone = new spriter.bone().load(bone);
 	}
 
 	var object = json.object;
-	if (0 === object) { object = {}; } // if object is all defaults this happens
+	// if object is all defaults this happens
+	if ((0 === object) || (null === object))
+	{
+		object = {};
+	}
 	if (object)
 	{
 		this.object = new spriter.object().load(object);
@@ -801,7 +814,7 @@ spriter.data.prototype.loadFromURL = function (url, callback)
 
 	var req = new XMLHttpRequest();
 	req.open("GET", url, true);
-	req.addEventListener('readystatechange', function ()
+	req.addEventListener('readystatechange', function (e)
 	{
 		if (req.readyState != 4) return;
 		if (req.status != 200 && req.status != 304)
@@ -1387,6 +1400,38 @@ spriter.pose.prototype.getAnimKeyTime = function (anim_index, key_index)
 
 /**
  * @return {number}
+ * @param {number=} anim_index 
+ */
+spriter.pose.prototype.getNumAnimKeys = function (anim_index)
+{
+	var entity_index = this.m_entity_index;
+	anim_index = (anim_index !== undefined)?(anim_index):(this.m_anim_index);
+	if (this.m_data)
+	{
+		return this.m_data.getNumAnimKeys(entity_index, anim_index);
+	}
+	return 0;
+}
+
+/**
+ * @return {number} 
+ * @param {number=} anim_index 
+ * @param {number=} key_index 
+ */
+spriter.pose.prototype.getAnimKeyTime = function (anim_index, key_index)
+{
+	var entity_index = this.m_entity_index;
+	anim_index = (anim_index !== undefined)?(anim_index):(this.m_anim_index);
+	key_index = (key_index !== undefined)?(key_index):(this.m_mainline_key_index);
+	if (this.m_data)
+	{
+		return this.m_data.getAnimKeyTime(entity_index, anim_index, key_index);
+	}
+	return 0;
+}
+
+/**
+ * @return {number}
  */
 spriter.pose.prototype.getTime = function ()
 {
@@ -1416,7 +1461,7 @@ spriter.pose.prototype.getKey = function ()
 
 /**
  * @return {void} 
- * @param {number} time 
+ * @param {number} key_index 
  */
 spriter.pose.prototype.setKey = function (key_index)
 {

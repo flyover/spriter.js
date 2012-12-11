@@ -623,6 +623,8 @@ fo.view_2d.prototype.draw_pose_2d = function (pose)
 				{
 					ctx_2d.scale(1, -1); // -y for canvas space
 
+					ctx_2d.globalAlpha = object.a;
+
 					//ctx_2d.drawImage(file.image, -1, -1, 2, 2);
 					ctx_2d.drawImage(file.image, -ex, -ey, 2*ex, 2*ey);
 				}
@@ -691,6 +693,8 @@ fo.view_gl = function (canvas_gl)
 		var uMatrixC = this.uMatrixC = new Float32Array(16); // camera matrix
 		var uMatrixM = this.uMatrixM = new Float32Array(16); // modelview matrix
 
+		var uGlobalAlpha = this.uGlobalAlpha = new Float32Array(1);
+
 		var mtx = new fo.m3x2();
 		mtx.selfScale(2 / ctx_gl.canvas.width, 2 / ctx_gl.canvas.height);
 		this.load_projection_mtx(mtx);
@@ -733,11 +737,13 @@ fo.view_gl = function (canvas_gl)
 		// fragment shader
 		var fs_src = "";
 		fs_src += "precision mediump float;";
+		fs_src += "uniform float uGlobalAlpha;";
 		fs_src += "uniform sampler2D uSampler;";
 		fs_src += "varying vec4 vColor;";
 		fs_src += "varying vec2 vTexCoord;";
 		fs_src += "void main(void) {";
 		fs_src += " gl_FragColor = texture2D(uSampler, vTexCoord.st);";
+		fs_src += " gl_FragColor.a *= uGlobalAlpha;";
 		fs_src += "}";
 		var fs = compile_shader(fs_src, ctx_gl.FRAGMENT_SHADER);
 
@@ -763,6 +769,7 @@ fo.view_gl = function (canvas_gl)
 		program.uMatrixC = ctx_gl.getUniformLocation(program, "uMatrixC");
 		program.uMatrixM = ctx_gl.getUniformLocation(program, "uMatrixM");
 
+		program.uGlobalAlpha = ctx_gl.getUniformLocation(program, "uGlobalAlpha");
 		program.uSampler = ctx_gl.getUniformLocation(program, "uSampler");
 
 		program.aVertexPosition = ctx_gl.getAttribLocation(program, "aVertexPosition");
@@ -909,6 +916,8 @@ fo.view_gl.prototype.draw_pose_gl = function (pose)
 
 			this.load_modelview_mtx(mtx);
 
+			this.uGlobalAlpha[0] = object.a;
+
 			if (!file.texture && file.image && !file.image.hidden)
 			{
 				file.texture = ctx_gl.createTexture();
@@ -932,6 +941,8 @@ fo.view_gl.prototype.draw_pose_gl = function (pose)
 				ctx_gl.uniformMatrix4fv(program.uMatrixP, false, this.uMatrixP);
 				ctx_gl.uniformMatrix4fv(program.uMatrixC, false, this.uMatrixC);
 				ctx_gl.uniformMatrix4fv(program.uMatrixM, false, this.uMatrixM);
+
+				ctx_gl.uniform1fv(program.uGlobalAlpha, this.uGlobalAlpha);
 
 				ctx_gl.activeTexture(ctx_gl.TEXTURE0);
 				ctx_gl.bindTexture(ctx_gl.TEXTURE_2D, file.texture);
