@@ -743,7 +743,7 @@ fo.view_gl = function (canvas_gl)
 		fs_src += "varying vec2 vTexCoord;";
 		fs_src += "void main(void) {";
 		fs_src += " gl_FragColor = texture2D(uSampler, vTexCoord.st);";
-		fs_src += " gl_FragColor.a *= uGlobalAlpha;";
+		fs_src += " gl_FragColor *= uGlobalAlpha;";
 		fs_src += "}";
 		var fs = compile_shader(fs_src, ctx_gl.FRAGMENT_SHADER);
 
