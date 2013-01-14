@@ -368,12 +368,13 @@ var main = function ()
 
 		update(tick);
 
+		tick.time_last = time;
+
 		draw_2d();
 
 		draw_gl();
 	}
 
-	tick.time_last = new Date().getTime();
 	loop(tick.time_last);
 }
 
