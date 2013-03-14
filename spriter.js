@@ -798,6 +798,55 @@ spriter.data.prototype.parseSCML = function (scml)
 }
 
 /**
+ * @return {void} 
+ * @param {string} scml 
+ */
+spriter.data.prototype.loadFromXmlObject = function (xml_object)
+{
+	var json_string = xml2json(xml_object, "  ");
+	var json = /** @type {Object} */ window.JSON.parse(json_string);
+	if (json.spriter_data)
+	{
+		this.load(json.spriter_data);
+	}
+};
+
+spriter.data.prototype.prepareImages = function (url, inc_count, dec_count)
+{
+	var that = this;
+
+	inc_count = inc_count || function(){};
+	dec_count = dec_count || function(){};
+
+	var base_path = url.slice(0, url.lastIndexOf('/'));
+	var folder_array = that.folder_array;
+	for (var folder_idx = 0, folder_len = folder_array.length; folder_idx < folder_len; ++folder_idx)
+	{
+		var folder = folder_array[folder_idx];
+		var file_array = folder.file_array;
+		for (var file_idx = 0, file_len = file_array.length; file_idx < file_len; ++file_idx)
+		{
+			var file = file_array[file_idx];
+
+			inc_count(); // texture_file
+			var image = file.image = new Image();
+			image.hidden = true;
+			image.addEventListener('load', (function (file) { return function (e)
+			{
+				file.width = file.width || e.target.width;
+				file.height = file.height || e.target.height;
+				e.target.hidden = false;
+				dec_count(); // texture_file
+			}
+			})(file), false);
+			image.addEventListener('error', function (e) { dec_count(); }, false); // texture_file
+			image.addEventListener('abort', function (e) { dec_count(); }, false); // texture_file
+			image.src = base_path + '/' + file.name;
+		}
+	}
+};
+
+/**
  * @return {void}
  * @param {string} url
  * @param {function()} callback
@@ -826,32 +875,7 @@ spriter.data.prototype.loadFromURL = function (url, callback)
 
 		// load texture files from url
 
-		var base_path = url.slice(0, url.lastIndexOf('/'));
-		var folder_array = that.folder_array;
-		for (var folder_idx = 0, folder_len = folder_array.length; folder_idx < folder_len; ++folder_idx)
-		{
-			var folder = folder_array[folder_idx];
-			var file_array = folder.file_array;
-			for (var file_idx = 0, file_len = file_array.length; file_idx < file_len; ++file_idx)
-			{
-				var file = file_array[file_idx];
-
-				inc_count(); // texture_file
-				var image = file.image = new Image();
-				image.hidden = true;
-				image.addEventListener('load', (function (file) { return function (e)
-				{
-					file.width = file.width || e.target.width;
-					file.height = file.height || e.target.height;
-					e.target.hidden = false;
-					dec_count(); // texture_file
-				}
-				})(file), false);
-				image.addEventListener('error', function (e) { dec_count(); }, false); // texture_file
-				image.addEventListener('abort', function (e) { dec_count(); }, false); // texture_file
-				image.src = base_path + '/' + file.name;
-			}
-		}
+		that.prepareImages(url, inc_count, dec_count);
 
 		dec_count(); // url
 	}, 
@@ -1187,6 +1211,8 @@ spriter.pose = function (data)
 
 	/** @type {Array.<spriter.object>} */
 	this.m_tweened_object_array = [];
+
+	this.isLooping = true;
 }
 
 /**
@@ -1485,7 +1511,11 @@ spriter.pose.prototype.update = function (elapsed_time)
 		this.m_time += elapsed_time;
 
 		while (this.m_time < 0) { this.m_time += anim_length; }
-		while (this.m_time >= anim_length) { this.m_time -= anim_length; }
+		if (this.isLooping) {
+			if (this.m_time >= anim_length) { this.m_time = 0; }
+		} else {
+			if (this.m_time >= anim_length) { this.m_time = anim_length; }
+		}
 
 		this.m_dirty = true;
 	}
