@@ -167,19 +167,20 @@ spriter.combineParent = function (bone, parent_bone)
  */
 spriter.file = function ()
 {
-	/** @type {number} */
-	this.id = -1;
-	/** @type {string} */
-	this.name = "";
-	/** @type {number} */
-	this.width = 0;
-	/** @type {number} */
-	this.height = 0;
-	/** @type {number} */
-	this.pivot_x = 0;
-	/** @type {number} */
-	this.pivot_y = 1;
 }
+
+/** @type {number} */
+spriter.file.prototype.id = -1;
+/** @type {string} */
+spriter.file.prototype.name = "";
+/** @type {number} */
+spriter.file.prototype.width = 0;
+/** @type {number} */
+spriter.file.prototype.height = 0;
+/** @type {number} */
+spriter.file.prototype.pivot_x = 0;
+/** @type {number} */
+spriter.file.prototype.pivot_y = 1;
 
 /**
  * @return {spriter.file} 
@@ -202,11 +203,12 @@ spriter.file.prototype.load = function (json)
  */
 spriter.folder = function ()
 {
-	/** @type {number} */
-	this.id = -1;
-	/** @type {Array.< spriter.file >} */
-	this.file_array = null;
 }
+
+/** @type {number} */
+spriter.folder.prototype.id = -1;
+/** @type {Array.< spriter.file >} */
+spriter.folder.prototype.file_array = null;
 
 /**
  * @return {spriter.folder} 
@@ -230,21 +232,22 @@ spriter.folder.prototype.load = function (json)
  */
 spriter.bone = function ()
 {
-	/** @type {number} */
-	this.id = -1;
-	/** @type {number} */
-	this.parent = -1;
-	/** @type {number} */
-	this.x = 0;
-	/** @type {number} */
-	this.y = 0;
-	/** @type {number} */
-	this.angle = 0;
-	/** @type {number} */
-	this.scale_x = 1;
-	/** @type {number} */
-	this.scale_y = 1;
 }
+
+/** @type {number} */
+spriter.bone.prototype.id = -1;
+/** @type {number} */
+spriter.bone.prototype.parent = -1;
+/** @type {number} */
+spriter.bone.prototype.x = 0;
+/** @type {number} */
+spriter.bone.prototype.y = 0;
+/** @type {number} */
+spriter.bone.prototype.angle = 0;
+/** @type {number} */
+spriter.bone.prototype.scale_x = 1;
+/** @type {number} */
+spriter.bone.prototype.scale_y = 1;
 
 /**
  * @return {spriter.bone} 
@@ -307,15 +310,16 @@ spriter.bone.prototype.tween = function (other, tween, spin)
  */
 spriter.bone_ref = function ()
 {
-	/** @type {number} */
-	this.id = -1;
-	/** @type {number} */
-	this.parent = -1;
-	/** @type {number} */
-	this.timeline = 0;
-	/** @type {number} */
-	this.key = 0;
 }
+
+/** @type {number} */
+spriter.bone_ref.prototype.id = -1;
+/** @type {number} */
+spriter.bone_ref.prototype.parent = -1;
+/** @type {number} */
+spriter.bone_ref.prototype.timeline = 0;
+/** @type {number} */
+spriter.bone_ref.prototype.key = 0;
 
 /**
  * @return {spriter.bone_ref} 
@@ -357,33 +361,34 @@ spriter.bone_ref.prototype.copy = function (other)
  */
 spriter.object = function ()
 {
-	/** @type {number} */
-	this.id = -1;
-	/** @type {number} */
-	this.parent = -1;
-	/** @type {number} */
-	this.folder = 0;
-	/** @type {number} */
-	this.file = 0;
-	/** @type {number} */
-	this.x = 0;
-	/** @type {number} */
-	this.y = 0;
-	/** @type {number} */
-	this.angle = 0;
-	/** @type {number} */
-	this.scale_x = 1;
-	/** @type {number} */
-	this.scale_y = 1;
-	/** @type {number} */
-	this.pivot_x = 0;
-	/** @type {number} */
-	this.pivot_y = 1;
-	/** @type {number} */
-	this.z_index = 0;
-	/** @type {number} */
-	this.a = 1;
 }
+
+/** @type {number} */
+spriter.object.prototype.id = -1;
+/** @type {number} */
+spriter.object.prototype.parent = -1;
+/** @type {number} */
+spriter.object.prototype.folder = 0;
+/** @type {number} */
+spriter.object.prototype.file = 0;
+/** @type {number} */
+spriter.object.prototype.x = 0;
+/** @type {number} */
+spriter.object.prototype.y = 0;
+/** @type {number} */
+spriter.object.prototype.angle = 0;
+/** @type {number} */
+spriter.object.prototype.scale_x = 1;
+/** @type {number} */
+spriter.object.prototype.scale_y = 1;
+/** @type {number} */
+spriter.object.prototype.pivot_x = 0;
+/** @type {number} */
+spriter.object.prototype.pivot_y = 1;
+/** @type {number} */
+spriter.object.prototype.z_index = 0;
+/** @type {number} */
+spriter.object.prototype.a = 1;
 
 /**
  * @return {spriter.object} 
@@ -461,17 +466,18 @@ spriter.object.prototype.tween = function (other, tween, spin)
  */
 spriter.object_ref = function ()
 {
-	/** @type {number} */
-	this.id = -1;
-	/** @type {number} */
-	this.parent = -1;
-	/** @type {number} */
-	this.timeline = 0;
-	/** @type {number} */
-	this.key = 0;
-	/** @type {number} */
-	this.z_index = 0;
 }
+
+/** @type {number} */
+spriter.object_ref.prototype.id = -1;
+/** @type {number} */
+spriter.object_ref.prototype.parent = -1;
+/** @type {number} */
+spriter.object_ref.prototype.timeline = 0;
+/** @type {number} */
+spriter.object_ref.prototype.key = 0;
+/** @type {number} */
+spriter.object_ref.prototype.z_index = 0;
 
 /**
  * @return {spriter.object_ref} 
@@ -516,9 +522,11 @@ spriter.object_ref.prototype.copy = function (other)
  */
 spriter.keyframe = function (time)
 {
-	/** @type {number} */
 	this.time = time || 0;
 }
+
+/** @type {number} */
+spriter.keyframe.prototype.time = 0;
 
 /**
  * @return {spriter.keyframe} 
@@ -558,15 +566,16 @@ spriter.keyframe.find = function (array, time)
  */
 spriter.mainline_keyframe = function ()
 {
-	/** @type {number} */
-	this.id = -1;
-	/** @type {number} */
-	this.time = 0;
-	/** @type {Array.< spriter.bone|spriter.bone_ref >} */
-	this.bone_array = null;
-	/** @type {Array.< spriter.object|spriter.object_ref >} */
-	this.object_array = null;
 }
+
+/** @type {number} */
+spriter.mainline_keyframe.prototype.id = -1;
+/** @type {number} */
+spriter.mainline_keyframe.prototype.time = 0;
+/** @type {Array.< spriter.bone|spriter.bone_ref >} */
+spriter.mainline_keyframe.prototype.bone_array = null;
+/** @type {Array.< spriter.object|spriter.object_ref >} */
+spriter.mainline_keyframe.prototype.object_array = null;
 
 /**
  * @return {spriter.mainline_keyframe} 
@@ -613,9 +622,10 @@ spriter.mainline_keyframe.prototype.load = function (json)
  */
 spriter.mainline = function ()
 {
-	/** @type {Array.< spriter.mainline_keyframe >} */
-	this.keyframe_array = null;
 }
+
+/** @type {Array.< spriter.mainline_keyframe >} */
+spriter.mainline.prototype.keyframe_array = null;
 
 /**
  * @return {spriter.mainline} 
@@ -638,17 +648,18 @@ spriter.mainline.prototype.load = function (json)
  */
 spriter.timeline_keyframe = function ()
 {
-	/** @type {number} */
-	this.id = -1;
-	/** @type {number} */
-	this.time = 0;
-	/** @type {number} */
-	this.spin = 1; // 1: counter-clockwise, -1: clockwise
-	/** @type {spriter.bone} */
-	this.bone = null;
-	/** @type {spriter.object} */
-	this.object = null;
 }
+
+/** @type {number} */
+spriter.timeline_keyframe.prototype.id = -1;
+/** @type {number} */
+spriter.timeline_keyframe.prototype.time = 0;
+/** @type {number} */
+spriter.timeline_keyframe.prototype.spin = 1; // 1: counter-clockwise, -1: clockwise
+/** @type {spriter.bone} */
+spriter.timeline_keyframe.prototype.bone = null;
+/** @type {spriter.object} */
+spriter.timeline_keyframe.prototype.object = null;
 
 /**
  * @return {spriter.timeline_keyframe} 
@@ -690,14 +701,15 @@ spriter.timeline_keyframe.prototype.load = function (json)
  */
 spriter.timeline = function ()
 {
-	/** @type {number} */
-	this.id = -1;
-	/** @type {string} */
-	this.name = "";
-
-	/** @type {Array.< spriter.timeline_keyframe >} */
-	this.keyframe_array = null;
 }
+
+/** @type {number} */
+spriter.timeline.prototype.id = -1;
+/** @type {string} */
+spriter.timeline.prototype.name = "";
+
+/** @type {Array.< spriter.timeline_keyframe >} */
+spriter.timeline.prototype.keyframe_array = null;
 
 /**
  * @return {spriter.timeline} 
@@ -723,25 +735,26 @@ spriter.timeline.prototype.load = function (json)
  */
 spriter.animation = function ()
 {
-	/** @type {number} */
-	this.id = -1;
-	/** @type {string} */
-	this.name = "";
-	/** @type {number} */
-	this.length = 0;
-	/** @type {string} */
-	this.looping = "true"; // "true", "false" or "ping_pong"
-	/** @type {number} */
-	this.loop_to = 0;
-	/** @type {spriter.mainline} */
-	this.mainline = null;
-	/** @type {Array.< spriter.timeline >} */
-	this.timeline_array = null;
-	/** @type {number} */
-	this.min_time = 0;
-	/** @type {number} */
-	this.max_time = 0;
 }
+
+/** @type {number} */
+spriter.animation.prototype.id = -1;
+/** @type {string} */
+spriter.animation.prototype.name = "";
+/** @type {number} */
+spriter.animation.prototype.length = 0;
+/** @type {string} */
+spriter.animation.prototype.looping = "true"; // "true", "false" or "ping_pong"
+/** @type {number} */
+spriter.animation.prototype.loop_to = 0;
+/** @type {spriter.mainline} */
+spriter.animation.prototype.mainline = null;
+/** @type {Array.< spriter.timeline >} */
+spriter.animation.prototype.timeline_array = null;
+/** @type {number} */
+spriter.animation.prototype.min_time = 0;
+/** @type {number} */
+spriter.animation.prototype.max_time = 0;
 
 /**
  * @return {spriter.animation} 
@@ -776,15 +789,16 @@ spriter.animation.prototype.load = function (json)
  */
 spriter.entity = function ()
 {
-	/** @type {number} */
-	this.id = -1;
-	/** @type {string} */
-	this.name = "";
-	/** @type {Array.< spriter.animation >} */
-	this.animation_array = null;
-	/** @type {Object.< string, spriter.animation >} */
-	this.animation_map = null;
 }
+
+/** @type {number} */
+spriter.entity.prototype.id = -1;
+/** @type {string} */
+spriter.entity.prototype.name = "";
+/** @type {Array.< spriter.animation >} */
+spriter.entity.prototype.animation_array = null;
+/** @type {Object.< string, spriter.animation >} */
+spriter.entity.prototype.animation_map = null;
 
 /**
  * @return {spriter.entity} 
@@ -813,13 +827,15 @@ spriter.entity.prototype.load = function (json)
  */
 spriter.data = function ()
 {
-	/** @type {Array.< spriter.folder >} */
-	this.folder_array = null;
-
-	/** @type {Array.< spriter.entity >} */
-	this.entity_array = null;
-	this.entity_map = null;
 }
+
+/** @type {Array.< spriter.folder >} */
+spriter.data.prototype.folder_array = null;
+
+/** @type {Array.< spriter.entity >} */
+spriter.data.prototype.entity_array = null;
+/** @type {Object.< string,spriter.entity >} */
+spriter.data.prototype.entity_map = null;
 
 /**
  * @return {spriter.data} 
@@ -877,27 +893,32 @@ spriter.data.prototype.getAnims = function (entity_key)
  */
 spriter.pose = function (data)
 {
-	/** @type {spriter.data} */
 	this.data = data || null;
 
-	/** @type {string} */
-	this.current_entity_key = "";
-	/** @type {string} */
-	this.current_anim_key = "";
-	/** @type {number} */
-	this.time = 0;
-	/** @type {number} */
-	this.elapsed_time = 0;
-
-	/** @type {boolean} */
-	this.dirty = true;
-
-	/** @type {Array.< spriter.bone >} */
 	this.tweened_bone_array = [];
-
-	/** @type {Array.< spriter.object >} */
 	this.tweened_object_array = [];
 }
+
+/** @type {spriter.data} */
+spriter.pose.prototype.data;
+
+/** @type {string} */
+spriter.pose.prototype.current_entity_key = "";
+/** @type {string} */
+spriter.pose.prototype.current_anim_key = "";
+/** @type {number} */
+spriter.pose.prototype.time = 0;
+/** @type {number} */
+spriter.pose.prototype.elapsed_time = 0;
+
+/** @type {boolean} */
+spriter.pose.prototype.dirty = true;
+
+/** @type {Array.< spriter.bone >} */
+spriter.pose.prototype.tweened_bone_array;
+
+/** @type {Array.< spriter.object >} */
+spriter.pose.prototype.tweened_object_array;
 
 /**
  * @return {Object.< string, spriter.entity >} 
