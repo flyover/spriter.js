@@ -1,8 +1,8 @@
 var loadText = function (url, callback)
 {
 	var req = new XMLHttpRequest();
-	req.responseType = 'text';
 	req.open("GET", url, true);
+	req.responseType = 'text';
 	req.addEventListener('error', function (event) {}, false);
 	req.addEventListener('abort', function (event) {}, false);
 	req.addEventListener('load', function (event) { callback(req.response); }, false);
@@ -63,6 +63,11 @@ main.start = function ()
 			}
 		}
 	});
+
+	document.body.style.margin = '0px';
+	document.body.style.border = '0px';
+	document.body.style.padding = '0px';
+	document.body.style.overflow = 'hidden';
 
 	var canvas = document.createElement('canvas');
 	canvas.width = window.innerWidth;
