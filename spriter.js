@@ -109,6 +109,35 @@ spriter.toArray = function (value, def)
 }
 
 /**
+ * @return {number} 
+ * @param {number} num 
+ * @param {number} min 
+ * @param {number} max 
+ */
+spriter.wrap = function (num, min, max)
+{
+	if (min < max)
+	{
+		if (num <= 0)
+		{
+			return ((num + min) % (max - min)) - min;
+		}
+		else
+		{
+			return ((num - min) % (max - min)) + min;
+		}
+	}
+	else if (min === max)
+	{
+		return min;
+	}
+	else
+	{
+		return num;
+	}
+}
+
+/**
  * @return {number}
  * @param {number} a
  * @param {number} b
@@ -1003,10 +1032,9 @@ spriter.pose.prototype.setAnim = function (anim_key)
 	{
 		this.current_anim_key = anim_key;
 		var anim = this.curAnim();
-		if (anim && (anim.length > 0))
+		if (anim)
 		{
-			while (this.time < anim.min_time) { this.time += anim.length; }
-			while (this.time > anim.max_time) { this.time -= anim.length; }
+			this.time = spriter.wrap(this.time, anim.min_time, anim.max_time);
 		}
 		this.elapsed_time = 0;
 		this.dirty = true;
@@ -1027,9 +1055,16 @@ spriter.pose.prototype.getTime = function ()
  */
 spriter.pose.prototype.setTime = function (time)
 {
+	var anim = this.curAnim();
+	if (anim)
+	{
+		time = spriter.wrap(time, anim.min_time, anim.max_time);
+	}
+
 	if (this.time != time)
 	{
 		this.time = time;
+		this.elapsed_time = 0;
 		this.dirty = true;
 	}
 }
@@ -1040,15 +1075,7 @@ spriter.pose.prototype.setTime = function (time)
  */
 spriter.pose.prototype.update = function (elapsed_time)
 {
-	this.time += elapsed_time;
-	var anim = this.curAnim();
-	if (anim && (anim.length > 0))
-	{
-		while (this.time < anim.min_time) { this.time += anim.length; }
-		while (this.time > anim.max_time) { this.time -= anim.length; }
-	}
-	this.elapsed_time = elapsed_time;
-	this.dirty = true;
+	this.setTime(this.getTime() + elapsed_time);
 }
 
 /**
