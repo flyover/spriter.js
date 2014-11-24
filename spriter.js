@@ -34,44 +34,47 @@ goog.provide('spriter');
 
 /**
  * @return {boolean} 
- * @param {string} value 
+ * @param {string|boolean} value 
  * @param {boolean=} def 
  */
-spriter.toBool = function (value, def)
+spriter.importBool = function (value, def)
 {
-	if (typeof(value) !== 'undefined')
+	switch (typeof(value))
 	{
-		return 'true' === value ? true : false;
+	case 'string': return (value === 'true') ? true : false;
+	case 'boolean': return value;
+	default: return def || false;
 	}
-	return def || false;
 }
 
 /**
  * @return {number} 
- * @param {string} value 
+ * @param {string|number} value 
  * @param {number=} def 
  */
-spriter.toInt = function (value, def)
+spriter.importInt = function (value, def)
 {
-	if (typeof(value) !== 'undefined')
+	switch (typeof(value))
 	{
-		return parseInt(value, 10);
+	case 'string': return parseInt(value, 10);
+	case 'number': return 0 | value;
+	default: return def || 0;
 	}
-	return def || 0;
 }
 
 /**
  * @return {number} 
- * @param {string} value 
+ * @param {string|number} value 
  * @param {number=} def 
  */
-spriter.toFloat = function (value, def)
+spriter.importFloat = function (value, def)
 {
-	if (typeof(value) !== 'undefined')
+	switch (typeof(value))
 	{
-		return parseFloat(value);
+	case 'string': return parseFloat(value);
+	case 'number': return value;
+	default: return def || 0;
 	}
-	return def || 0;
 }
 
 /**
@@ -79,33 +82,30 @@ spriter.toFloat = function (value, def)
  * @param {string} value 
  * @param {string=} def 
  */
-spriter.toString = function (value, def)
+spriter.importString = function (value, def)
 {
-	if (typeof(value) !== 'undefined')
+	switch (typeof(value))
 	{
-		return value;
+	case 'string': return value;
+	default: return def || "";
 	}
-	return def || "";
 }
 
 /**
  * @return {Array}
  * @param {*} value 
- * @param {Array=} def 
  */
-spriter.toArray = function (value, def)
+spriter.makeArray = function (value)
 {
-	if (value)
+	if ((typeof(value) === 'object') && (typeof(value.length) === 'number')) // (Object.isArray(value))
 	{
-		if (value.length)
-		{
-			return /** @type {Array} */ (value);
-		}
-
-		return [value];
+		return /** @type {Array} */ (value);
 	}
-
-	return def || [];
+	if (typeof(value) !== 'undefined')
+	{
+		return [ value ];
+	}
+	return [];
 }
 
 /**
@@ -217,13 +217,13 @@ spriter.file.prototype.pivot_y = 1;
  */
 spriter.file.prototype.load = function (json)
 {
-	this.id = spriter.toInt(json['@id'], -1);
-	this.name = spriter.toString(json['@name'], "");
-	this.width = spriter.toInt(json['@width'], 0);
-	this.height = spriter.toInt(json['@height'], 0);
-	this.pivot_x = spriter.toFloat(json['@pivot_x'], 0);
-	this.pivot_y = spriter.toFloat(json['@pivot_y'], 1);
-	//this.pivot_y = 0-(1-spriter.toFloat(json['@pivot_y'],1));
+	this.id = spriter.importInt(json['@id'], -1);
+	this.name = spriter.importString(json['@name'], "");
+	this.width = spriter.importInt(json['@width'], 0);
+	this.height = spriter.importInt(json['@height'], 0);
+	this.pivot_x = spriter.importFloat(json['@pivot_x'], 0);
+	this.pivot_y = spriter.importFloat(json['@pivot_y'], 1);
+	//this.pivot_y = 0-(1-spriter.importFloat(json['@pivot_y'],1));
 	return this;
 }
 
@@ -245,9 +245,9 @@ spriter.folder.prototype.file_array = null;
  */
 spriter.folder.prototype.load = function (json)
 {
-	this.id = spriter.toInt(json['@id'], -1);
+	this.id = spriter.importInt(json['@id'], -1);
 	this.file_array = [];
-	json.file = spriter.toArray(json.file);
+	json.file = spriter.makeArray(json.file);
 	for (var file_idx = 0, file_len = json.file.length; file_idx < file_len; ++file_idx)
 	{
 		this.file_array.push(new spriter.file().load(json.file[file_idx]));
@@ -284,13 +284,13 @@ spriter.bone.prototype.scale_y = 1;
  */
 spriter.bone.prototype.load = function (json)
 {
-	this.id = spriter.toInt(json['@id'], -1);
-	this.parent = spriter.toInt(json['@parent'], -1);
-	this.x = spriter.toFloat(json['@x'], 0);
-	this.y = spriter.toFloat(json['@y'], 0);
-	this.angle = spriter.toFloat(json['@angle'], 0);
-	this.scale_x = spriter.toFloat(json['@scale_x'], 1);
-	this.scale_y = spriter.toFloat(json['@scale_y'], 1);
+	this.id = spriter.importInt(json['@id'], -1);
+	this.parent = spriter.importInt(json['@parent'], -1);
+	this.x = spriter.importFloat(json['@x'], 0);
+	this.y = spriter.importFloat(json['@y'], 0);
+	this.angle = spriter.importFloat(json['@angle'], 0);
+	this.scale_x = spriter.importFloat(json['@scale_x'], 1);
+	this.scale_y = spriter.importFloat(json['@scale_y'], 1);
 	return this;
 }
 
@@ -356,10 +356,10 @@ spriter.bone_ref.prototype.key = 0;
  */
 spriter.bone_ref.prototype.load = function (json)
 {
-	this.id = spriter.toInt(json['@id'], -1);
-	this.parent = spriter.toInt(json['@parent'], -1);
-	this.timeline = spriter.toInt(json['@timeline'], 0);
-	this.key = spriter.toInt(json['@key'], 0);
+	this.id = spriter.importInt(json['@id'], -1);
+	this.parent = spriter.importInt(json['@parent'], -1);
+	this.timeline = spriter.importInt(json['@timeline'], 0);
+	this.key = spriter.importInt(json['@key'], 0);
 	return this;
 }
 
@@ -425,19 +425,19 @@ spriter.object.prototype.a = 1;
  */
 spriter.object.prototype.load = function (json)
 {
-	this.id = spriter.toInt(json['@id'], -1);
-	this.parent = spriter.toInt(json['@parent'], -1);
-	this.folder = spriter.toInt(json['@folder'], 0);
-	this.file = spriter.toInt(json['@file'], 0);
-	this.x = spriter.toFloat(json['@x'], 0);
-	this.y = spriter.toFloat(json['@y'], 0);
-	this.angle = spriter.toFloat(json['@angle'], 0);
-	this.scale_x = spriter.toFloat(json['@scale_x'], 1);
-	this.scale_y = spriter.toFloat(json['@scale_y'], 1);
-	this.pivot_x = spriter.toFloat(json['@pivot_x'], 0);
-	this.pivot_y = spriter.toFloat(json['@pivot_y'], 1);
-	this.z_index = spriter.toInt(json['@z_index'], 0);
-	this.a = spriter.toFloat(json['@a'], 1);
+	this.id = spriter.importInt(json['@id'], -1);
+	this.parent = spriter.importInt(json['@parent'], -1);
+	this.folder = spriter.importInt(json['@folder'], 0);
+	this.file = spriter.importInt(json['@file'], 0);
+	this.x = spriter.importFloat(json['@x'], 0);
+	this.y = spriter.importFloat(json['@y'], 0);
+	this.angle = spriter.importFloat(json['@angle'], 0);
+	this.scale_x = spriter.importFloat(json['@scale_x'], 1);
+	this.scale_y = spriter.importFloat(json['@scale_y'], 1);
+	this.pivot_x = spriter.importFloat(json['@pivot_x'], 0);
+	this.pivot_y = spriter.importFloat(json['@pivot_y'], 1);
+	this.z_index = spriter.importInt(json['@z_index'], 0);
+	this.a = spriter.importFloat(json['@a'], 1);
 	return this;
 }
 
@@ -514,11 +514,11 @@ spriter.object_ref.prototype.z_index = 0;
  */
 spriter.object_ref.prototype.load = function (json)
 {
-	this.id = spriter.toInt(json['@id'], -1);
-	this.parent = spriter.toInt(json['@parent'], -1);
-	this.timeline = spriter.toInt(json['@timeline'], 0);
-	this.key = spriter.toInt(json['@key'], 0);
-	this.z_index = spriter.toInt(json['@z_index'], 0);
+	this.id = spriter.importInt(json['@id'], -1);
+	this.parent = spriter.importInt(json['@parent'], -1);
+	this.timeline = spriter.importInt(json['@timeline'], 0);
+	this.key = spriter.importInt(json['@key'], 0);
+	this.z_index = spriter.importInt(json['@z_index'], 0);
 	return this;
 }
 
@@ -563,7 +563,7 @@ spriter.keyframe.prototype.time = 0;
  */
 spriter.keyframe.prototype.load = function (json)
 {
-	this.time = spriter.toInt(json['@time'], 0);
+	this.time = spriter.importInt(json['@time'], 0);
 	return this;
 }
 
@@ -612,17 +612,17 @@ spriter.mainline_keyframe.prototype.object_array = null;
  */
 spriter.mainline_keyframe.prototype.load = function (json)
 {
-	this.id = spriter.toInt(json['@id'], -1);
-	this.time = spriter.toInt(json['@time'], 0);
+	this.id = spriter.importInt(json['@id'], -1);
+	this.time = spriter.importInt(json['@time'], 0);
 
 	// combine bones and bone_refs into one array and sort by id
 	this.bone_array = [];
-	json.bone = spriter.toArray(json.bone);
+	json.bone = spriter.makeArray(json.bone);
 	for (var bone_idx = 0, bone_len = json.bone.length; bone_idx < bone_len; ++bone_idx)
 	{
 		this.bone_array.push(new spriter.bone().load(json.bone[bone_idx]));
 	}
-	json.bone_ref = spriter.toArray(json.bone_ref);
+	json.bone_ref = spriter.makeArray(json.bone_ref);
 	for (var bone_ref_idx = 0, bone_ref_len = json.bone_ref.length; bone_ref_idx < bone_ref_len; ++bone_ref_idx)
 	{
 		this.bone_array.push(new spriter.bone_ref().load(json.bone_ref[bone_ref_idx]));
@@ -631,12 +631,12 @@ spriter.mainline_keyframe.prototype.load = function (json)
 
 	// combine objects and object_refs into one array and sort by id
 	this.object_array = [];
-	json.object = spriter.toArray(json.object);
+	json.object = spriter.makeArray(json.object);
 	for (var object_idx = 0, object_len = json.object.length; object_idx < object_len; ++object_idx)
 	{
 		this.object_array.push(new spriter.object().load(json.object[object_idx]));
 	}
-	json.object_ref = spriter.toArray(json.object_ref);
+	json.object_ref = spriter.makeArray(json.object_ref);
 	for (var object_ref_idx = 0, object_ref_len = json.object_ref.length; object_ref_idx < object_ref_len; ++object_ref_idx)
 	{
 		this.object_array.push(new spriter.object_ref().load(json.object_ref[object_ref_idx]));
@@ -663,7 +663,7 @@ spriter.mainline.prototype.keyframe_array = null;
 spriter.mainline.prototype.load = function (json)
 {
 	this.keyframe_array = [];
-	json.key = spriter.toArray(json.key);
+	json.key = spriter.makeArray(json.key);
 	for (var key_idx = 0, key_len = json.key.length; key_idx < key_len; ++key_idx)
 	{
 		this.keyframe_array.push(new spriter.mainline_keyframe().load(json.key[key_idx]));
@@ -696,9 +696,9 @@ spriter.timeline_keyframe.prototype.object = null;
  */
 spriter.timeline_keyframe.prototype.load = function (json)
 {
-	this.id = spriter.toInt(json['@id'], -1);
-	this.time = spriter.toInt(json['@time'], 0);
-	this.spin = spriter.toInt(json['@spin'], 1);
+	this.id = spriter.importInt(json['@id'], -1);
+	this.time = spriter.importInt(json['@time'], 0);
+	this.spin = spriter.importInt(json['@spin'], 1);
 
 	var bone = json.bone;
 	// if bone is all defaults this happens
@@ -746,11 +746,11 @@ spriter.timeline.prototype.keyframe_array = null;
  */
 spriter.timeline.prototype.load = function (json)
 {
-	this.id = spriter.toInt(json['@id'], -1);
-	this.name = spriter.toString(json['@name'], "");
+	this.id = spriter.importInt(json['@id'], -1);
+	this.name = spriter.importString(json['@name'], "");
 
 	this.keyframe_array = [];
-	json.key = spriter.toArray(json.key);
+	json.key = spriter.makeArray(json.key);
 	for (var key_idx = 0, key_len = json.key.length; key_idx < key_len; ++key_idx)
 	{
 		this.keyframe_array.push(new spriter.timeline_keyframe().load(json.key[key_idx]));
@@ -791,17 +791,17 @@ spriter.animation.prototype.max_time = 0;
  */
 spriter.animation.prototype.load = function (json)
 {
-	this.id = spriter.toInt(json['@id'], -1);
-	this.name = spriter.toString(json['@name'], "");
-	this.length = spriter.toInt(json['@length'], 0);
-	this.looping = spriter.toString(json['@looping'], "true");
-	this.loop_to = spriter.toInt(json['@loop_to'], 0);
+	this.id = spriter.importInt(json['@id'], -1);
+	this.name = spriter.importString(json['@name'], "");
+	this.length = spriter.importInt(json['@length'], 0);
+	this.looping = spriter.importString(json['@looping'], "true");
+	this.loop_to = spriter.importInt(json['@loop_to'], 0);
 
 	json.mainline = json.mainline || {};
 	this.mainline = new spriter.mainline().load(json.mainline);
 
 	this.timeline_array = [];
-	json.timeline = spriter.toArray(json.timeline);
+	json.timeline = spriter.makeArray(json.timeline);
 	for (var timeline_idx = 0, timeline_len = json.timeline.length; timeline_idx < timeline_len; ++timeline_idx)
 	{
 		this.timeline_array.push(new spriter.timeline().load(json.timeline[timeline_idx]));
@@ -835,12 +835,12 @@ spriter.entity.prototype.animation_map = null;
  */
 spriter.entity.prototype.load = function (json)
 {
-	this.id = spriter.toInt(json['@id'], -1);
-	this.name = spriter.toString(json['@name'], "");
+	this.id = spriter.importInt(json['@id'], -1);
+	this.name = spriter.importString(json['@name'], "");
 
 	this.animation_array = [];
 	this.animation_map = {};
-	json.animation = spriter.toArray(json.animation);
+	json.animation = spriter.makeArray(json.animation);
 	for (var animation_idx = 0, animation_len = json.animation.length; animation_idx < animation_len; ++animation_idx)
 	{
 		var animation = new spriter.animation().load(json.animation[animation_idx]);
@@ -875,7 +875,7 @@ spriter.data.prototype.load = function (json)
 	json.spriter_data = json.spriter_data || {};
 
 	this.folder_array = [];
-	json.spriter_data.folder = spriter.toArray(json.spriter_data.folder);
+	json.spriter_data.folder = spriter.makeArray(json.spriter_data.folder);
 	for (var folder_idx = 0, folder_len = json.spriter_data.folder.length; folder_idx < folder_len; ++folder_idx)
 	{
 		this.folder_array.push(new spriter.folder().load(json.spriter_data.folder[folder_idx]));
@@ -883,7 +883,7 @@ spriter.data.prototype.load = function (json)
 
 	this.entity_array = [];
 	this.entity_map = {};
-	json.spriter_data.entity = spriter.toArray(json.spriter_data.entity);
+	json.spriter_data.entity = spriter.makeArray(json.spriter_data.entity);
 	for (var entity_idx = 0; entity_idx < json.spriter_data.entity.length; ++entity_idx)
 	{
 		var entity = new spriter.entity().load(json.spriter_data.entity[entity_idx]);
