@@ -186,6 +186,10 @@ spriter.combineParent = function (bone, parent_bone)
 
 	bone.x += parent_bone.x;
 	bone.y += parent_bone.y;
+	if ((parent_bone.scale_x * parent_bone.scale_y) < 0)
+	{
+		bone.angle = -bone.angle;
+	}
 	bone.angle += parent_bone.angle;
 	bone.scale_x *= parent_bone.scale_x;
 	bone.scale_y *= parent_bone.scale_y;
