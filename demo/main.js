@@ -28,7 +28,10 @@ main.start = function ()
 	var spriter_pose = new spriter.pose(spriter_data);
 	var images = {};
 
-	loadText("GreyGuy/player.scml", function (text)
+	var spriter_file_path = "GreyGuy/";
+	var spriter_file_scml_url = spriter_file_path + "player.scml";
+
+	loadText(spriter_file_scml_url, function (text)
 	{
 		var parser = new DOMParser();
 		var spriter_doc = parser.parseFromString(text, 'text/xml');
@@ -59,7 +62,7 @@ main.start = function ()
 			{
 				var file = folder.file_array[file_idx];
 				var image_key = file.name;
-				images[image_key] = loadImage("GreyGuy/" + file.name, function (image) {});
+				images[image_key] = loadImage(spriter_file_path + file.name, function (image) {});
 			}
 		}
 	});
