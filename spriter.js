@@ -288,71 +288,6 @@ spriter.tweenAngleRadians = function (a, b, t, spin)
 }
 
 /**
- * @constructor
- */
-spriter.File = function ()
-{
-	this.pivot = new spriter.Vector();
-}
-
-/** @type {number} */
-spriter.File.prototype.id = -1;
-/** @type {string} */
-spriter.File.prototype.name = "";
-/** @type {number} */
-spriter.File.prototype.width = 0;
-/** @type {number} */
-spriter.File.prototype.height = 0;
-/** @type {spriter.Vector} */
-spriter.File.prototype.pivot;
-
-/**
- * @return {spriter.File} 
- * @param {Object.<string,?>} json 
- */
-spriter.File.prototype.load = function (json)
-{
-	this.id = spriter.loadInt(json, '@id', -1);
-	this.name = spriter.loadString(json, '@name', "");
-	this.width = spriter.loadInt(json, '@width', 0);
-	this.height = spriter.loadInt(json, '@height', 0);
-	this.pivot.x = spriter.loadFloat(json, '@pivot_x', 0);
-	this.pivot.y = spriter.loadFloat(json, '@pivot_y', 1);
-	return this;
-}
-
-/**
- * @constructor
- */
-spriter.Folder = function ()
-{
-	var folder = this;
-	folder.file_array = [];
-}
-
-/** @type {number} */
-spriter.Folder.prototype.id = -1;
-/** @type {Array.<spriter.File>} */
-spriter.Folder.prototype.file_array;
-
-/**
- * @return {spriter.Folder} 
- * @param {Object.<string,?>} json 
- */
-spriter.Folder.prototype.load = function (json)
-{
-	var folder = this;
-	folder.id = spriter.loadInt(json, '@id', -1);
-	folder.file_array.length = 0;
-	json.file = spriter.makeArray(json.file);
-	json.file.forEach(function (file)
-	{
-		folder.file_array.push(new spriter.File().load(file));
-	});
-	return folder;
-}
-
-/**
  * @constructor 
  * @param {number=} rad 
  */
@@ -608,6 +543,27 @@ goog.inherits(spriter.Scale, spriter.Vector);
 spriter.Scale.prototype.selfIdentity = function ()
 {
 	this.x = 1;
+	this.y = 1;
+	return this;
+}
+
+/**
+ * @constructor 
+ * @extends {spriter.Vector} 
+ */
+spriter.Pivot = function ()
+{
+	goog.base(this, 0, 1);
+}
+
+goog.inherits(spriter.Pivot, spriter.Vector);
+
+/**
+ * @return {spriter.Pivot}
+ */
+spriter.Pivot.prototype.selfIdentity = function ()
+{
+	this.x = 0;
 	this.y = 1;
 	return this;
 }
@@ -902,6 +858,73 @@ spriter.Space.tween = function (a, b, tween, spin, out)
 /**
  * @constructor
  */
+spriter.File = function ()
+{
+	var file = this;
+	file.pivot = new spriter.Pivot();
+}
+
+/** @type {number} */
+spriter.File.prototype.id = -1;
+/** @type {string} */
+spriter.File.prototype.name = "";
+/** @type {number} */
+spriter.File.prototype.width = 0;
+/** @type {number} */
+spriter.File.prototype.height = 0;
+/** @type {spriter.Pivot} */
+spriter.File.prototype.pivot;
+
+/**
+ * @return {spriter.File} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.File.prototype.load = function (json)
+{
+	var file = this;
+	file.id = spriter.loadInt(json, '@id', -1);
+	file.name = spriter.loadString(json, '@name', "");
+	file.width = spriter.loadInt(json, '@width', 0);
+	file.height = spriter.loadInt(json, '@height', 0);
+	file.pivot.x = spriter.loadFloat(json, '@pivot_x', 0);
+	file.pivot.y = spriter.loadFloat(json, '@pivot_y', 1);
+	return file;
+}
+
+/**
+ * @constructor
+ */
+spriter.Folder = function ()
+{
+	var folder = this;
+	folder.file_array = [];
+}
+
+/** @type {number} */
+spriter.Folder.prototype.id = -1;
+/** @type {Array.<spriter.File>} */
+spriter.Folder.prototype.file_array;
+
+/**
+ * @return {spriter.Folder} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.Folder.prototype.load = function (json)
+{
+	var folder = this;
+	folder.id = spriter.loadInt(json, '@id', -1);
+	folder.file_array.length = 0;
+	json.file = spriter.makeArray(json.file);
+	json.file.forEach(function (file)
+	{
+		folder.file_array.push(new spriter.File().load(file));
+	});
+	return folder;
+}
+
+/**
+ * @constructor
+ */
 spriter.Bone = function ()
 {
 	var bone = this;
@@ -1047,7 +1070,7 @@ spriter.Object = function ()
 {
 	this.local_space = new spriter.Space();
 	this.world_space = new spriter.Space();
-	this.pivot = new spriter.Vector(0, 1);
+	this.pivot = new spriter.Pivot();
 }
 
 /** @type {number} */
@@ -1062,8 +1085,10 @@ spriter.Object.prototype.file_index = -1;
 spriter.Object.prototype.local_space;
 /** @type {spriter.Space} */
 spriter.Object.prototype.world_space;
-/** @type {spriter.Vector} */
-spriter.Object.prototype.pivot = null;
+/** @type {boolean} */
+spriter.Object.prototype.default_pivot = false;
+/** @type {spriter.Pivot} */
+spriter.Object.prototype.pivot;
 /** @type {number} */
 spriter.Object.prototype.z_index = 0;
 /** @type {number} */
@@ -1089,7 +1114,7 @@ spriter.Object.prototype.load = function (json)
 	}
 	else
 	{
-		this.pivot = null; // patched in spriter.Data::load
+		this.default_pivot = true;
 	}
 	this.z_index = spriter.loadInt(json, '@z_index', 0);
 	this.alpha = spriter.loadFloat(json, '@a', 1);
@@ -1117,6 +1142,7 @@ spriter.Object.prototype.copy = function (other)
 	this.file_index = other.file_index;
 	this.local_space.copy(other.local_space);
 	this.world_space.copy(other.world_space);
+	this.default_pivot = other.default_pivot;
 	this.pivot.copy(other.pivot);
 	this.z_index = other.z_index;
 	this.alpha = other.alpha;
@@ -1275,30 +1301,36 @@ spriter.MainlineKeyframe.prototype.load = function (json)
 
 	// combine bones and bone_refs into one array and sort by id
 	mainline_keyframe.bone_array = [];
+
 	json.bone = spriter.makeArray(json.bone);
 	json.bone.forEach(function (bone_json)
 	{
 		mainline_keyframe.bone_array.push(new spriter.Bone().load(bone_json));
 	});
+	
 	json.bone_ref = spriter.makeArray(json.bone_ref);
 	json.bone_ref.forEach(function (bone_ref_json)
 	{
 		mainline_keyframe.bone_array.push(new spriter.BoneRef().load(bone_ref_json));
 	});
+	
 	mainline_keyframe.bone_array = mainline_keyframe.bone_array.sort(function (a, b) { return a.id - b.id; });
 
 	// combine objects and object_refs into one array and sort by id
 	mainline_keyframe.object_array = [];
+	
 	json.object = spriter.makeArray(json.object);
 	json.object.forEach(function (object_json)
 	{
 		mainline_keyframe.object_array.push(new spriter.Object().load(object_json));
 	});
+	
 	json.object_ref = spriter.makeArray(json.object_ref);
 	json.object_ref.forEach(function (object_ref_json)
 	{
 		mainline_keyframe.object_array.push(new spriter.ObjectRef().load(object_ref_json));
 	});
+	
 	mainline_keyframe.object_array = mainline_keyframe.object_array.sort(function (a, b) { return a.id - b.id; });
 
 	return mainline_keyframe;
@@ -1607,7 +1639,7 @@ spriter.Data.prototype.entity_keys = null;
 
 /**
  * @return {spriter.Data} 
- * @param {Object.<string,?>} json 
+ * @param {?} json 
  */
 spriter.Data.prototype.load = function (json)
 {
@@ -1652,9 +1684,12 @@ spriter.Data.prototype.load = function (json)
 				{
 					if (object instanceof spriter.Object)
 					{
-						var folder = data.folder_array[object.folder_index];
-						var file = folder.file_array[object.file_index];
-						object.pivot = object.pivot || new spriter.Vector().copy(file.pivot);
+						if (object.default_pivot)
+						{
+							var folder = data.folder_array[object.folder_index];
+							var file = folder.file_array[object.file_index];
+							object.pivot.copy(file.pivot);
+						}
 					}
 				});
 			});
@@ -1666,9 +1701,12 @@ spriter.Data.prototype.load = function (json)
 					if (timeline_keyframe instanceof spriter.ObjectTimelineKeyframe)
 					{
 						var object = timeline_keyframe.object;
-						var folder = data.folder_array[object.folder_index];
-						var file = folder.file_array[object.file_index];
-						object.pivot = object.pivot || new spriter.Vector().copy(file.pivot);
+						if (object.default_pivot)
+						{
+							var folder = data.folder_array[object.folder_index];
+							var file = folder.file_array[object.file_index];
+							object.pivot.copy(file.pivot);
+						}
 					}
 				});
 			});
@@ -1978,10 +2016,7 @@ spriter.Pose.prototype.strike = function ()
 		});
 
 		// clamp output bone array
-		if (pose_bone_array.length > data_bone_array.length)
-		{
-			pose_bone_array.length = data_bone_array.length;
-		}
+		pose_bone_array.length = data_bone_array.length;
 
 		pose_bone_array.forEach(function (bone)
 		{
@@ -2015,12 +2050,6 @@ spriter.Pose.prototype.strike = function ()
 				var time1 = timeline_keyframe.time;
 				var object1 = timeline_keyframe.object;
 
-				// hack: patch file pivot
-				//var folder1 = pose.data.folder_array[object1.folder_index];
-				//var file1 = folder1.file_array[object1.file_index];
-				//if (object1.pivot.x === 0) { object1.pivot.x = file1.pivot.x; }
-				//if (object1.pivot.y === 1) { object1.pivot.y = file1.pivot.y; }
-
 				pose_object.copy(object1);
 				pose_object.parent_index = data_object.parent_index; // set parent from object_ref
 
@@ -2033,13 +2062,6 @@ spriter.Pose.prototype.strike = function ()
 					if (time2 < time1) { time2 = anim.length; }
 					var object2 = timeline_keyframe2.object;
 
-					// hack: patch file pivot
-					//var folder2 = pose.data.folder_array[object2.folder_index];
-					//var file2 = folder2.file_array[object2.file_index];
-					//if (object2.pivot.x === 0) { object2.pivot.x = file2.pivot.x; }
-					//if (object2.pivot.y === 1) { object2.pivot.y = file2.pivot.y; }
-
-					//var tween = (time - time1) / (time2 - time1);
 					var tween = timeline_keyframe.evaluateCurve(time, time1, time2);
 					pose_object.tween(object2, tween, timeline_keyframe.spin);
 				}
@@ -2049,13 +2071,14 @@ spriter.Pose.prototype.strike = function ()
 				// object is a spriter.Object, copy
 				pose_object.copy(data_object);
 			}
+			else
+			{
+				throw new Error();
+			}
 		});
 
 		// clamp output object array
-		if (pose_object_array.length > data_object_array.length)
-		{
-			pose_object_array.length = data_object_array.length;
-		}
+		pose_object_array.length = data_object_array.length;
 
 		pose_object_array.forEach(function (object)
 		{
@@ -2065,8 +2088,8 @@ spriter.Pose.prototype.strike = function ()
 				spriter.Space.combine(bone.world_space, object.local_space, object.world_space);
 				var folder = pose.data.folder_array[object.folder_index];
 				var file = folder.file_array[object.file_index];
-				var offset_x = (0.5 - (object.pivot || file.pivot).x) * file.width;
-				var offset_y = (0.5 - (object.pivot || file.pivot).y) * file.height;
+				var offset_x = (0.5 - object.pivot.x) * file.width;
+				var offset_y = (0.5 - object.pivot.y) * file.height;
 				spriter.Space.translate(object.world_space, offset_x, offset_y);
 			}
 			else
