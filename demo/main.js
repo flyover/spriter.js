@@ -64,7 +64,6 @@ main.start = function ()
 			" gl_Position = vec4(uProjection * uModelview * vec3(aVertex.xy, 1.0), 1.0);",
 			"}"
 		];
-		var gl_shader_vs = glCompileShader(gl, gl_shader_vs_src, gl.VERTEX_SHADER);
 		var gl_shader_fs_src = 
 		[
 			"precision mediump int;",
@@ -76,10 +75,7 @@ main.start = function ()
 			" gl_FragColor = uColor * texture2D(uSampler, vTextureCoord);",
 			"}"
 		];
-		var gl_shader_fs = glCompileShader(gl, gl_shader_fs_src, gl.FRAGMENT_SHADER);
-		var gl_shader_program = glLinkProgram(gl, gl_shader_vs, gl_shader_fs);
-		var gl_shader_uniforms = glGetUniforms(gl, gl_shader_program, {});
-		var gl_shader_attribs = glGetAttribs(gl, gl_shader_program, {});
+		var gl_shader = glMakeShader(gl, gl_shader_vs_src, gl_shader_fs_src);
 		var gl_vertex_array = 
 		[ // x,  y, u, v
 			-1, -1, 0, 1, 
@@ -87,13 +83,7 @@ main.start = function ()
 			+1, +1, 1, 0, 
 			-1, +1, 0, 0
 		];
-		var gl_vertex_type = gl.FLOAT;
-		var gl_vertex_size = 4;
-		var gl_vertex_count = gl_vertex_array.length / gl_vertex_size;
-		var gl_vertex_type_array = new Float32Array(gl_vertex_array);
-		var gl_vertex_buffer = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, gl_vertex_buffer);
-		gl.bufferData(gl.ARRAY_BUFFER, gl_vertex_type_array, gl.STATIC_DRAW);
+		var gl_vertex = glMakeVertex(gl, new Float32Array(gl_vertex_array), 4, gl.ARRAY_BUFFER, gl.STATIC_DRAW);
 	}
 
 	var camera_x = 0;
@@ -154,11 +144,13 @@ main.start = function ()
 		});
 	});
 
+	var prev_time = 0;
+
 	var loop = function (time)
 	{
 		requestAnimationFrame(loop);
 
-		var dt = 1000 / 60; // ms
+		var dt = time - (prev_time || time); prev_time = time; // ms
 
 		pose.update(dt * anim_rate);
 
@@ -246,17 +238,17 @@ main.start = function ()
 						mat3x3ApplySpace(gl_modelview, object.world_space);
 						mat3x3Scale(gl_modelview, file.width/2, file.height/2);
 						vec4Identity(gl_color); gl_color[3] = object.alpha;
-						gl.useProgram(gl_shader_program);
-						gl.uniformMatrix3fv(gl_shader_uniforms['uProjection'], false, gl_projection);
-						gl.uniformMatrix3fv(gl_shader_uniforms['uModelview'], false, gl_modelview);
-						gl.uniform4fv(gl_shader_uniforms['uColor'], gl_color);
+						gl.useProgram(gl_shader.program);
+						gl.uniformMatrix3fv(gl_shader.uniforms['uProjection'], false, gl_projection);
+						gl.uniformMatrix3fv(gl_shader.uniforms['uModelview'], false, gl_modelview);
+						gl.uniform4fv(gl_shader.uniforms['uColor'], gl_color);
 						gl.activeTexture(gl.TEXTURE0);
 						gl.bindTexture(gl.TEXTURE_2D, gl_texture);
-						gl.uniform1i(gl_shader_uniforms['uSampler'], 0);
-						gl.bindBuffer(gl.ARRAY_BUFFER, gl_vertex_buffer);
-						gl.vertexAttribPointer(gl_shader_attribs['aVertex'], gl_vertex_size, gl_vertex_type, false, 0, 0);
-						gl.enableVertexAttribArray(gl_shader_attribs['aVertex']);
-						gl.drawArrays(gl.TRIANGLE_FAN, 0, gl_vertex_count);
+						gl.uniform1i(gl_shader.uniforms['uSampler'], 0);
+						gl.bindBuffer(gl.ARRAY_BUFFER, gl_vertex.buffer);
+						gl.vertexAttribPointer(gl_shader.attribs['aVertex'], gl_vertex.size, gl_vertex.type, false, 0, 0);
+						gl.enableVertexAttribArray(gl_shader.attribs['aVertex']);
+						gl.drawArrays(gl.TRIANGLE_FAN, 0, gl_vertex.count);
 					}
 				});
 			}
@@ -451,4 +443,37 @@ function glGetAttribs (gl, program, attribs)
 		attribs[attrib.name] = gl.getAttribLocation(program, attrib.name);
 	}
 	return attribs;
+}
+
+function glMakeShader (gl, vs_src, fs_src)
+{
+	var shader = {};
+	shader.vs_src = vs_src;
+	shader.fs_src = fs_src;
+	shader.vs = glCompileShader(gl, shader.vs_src, gl.VERTEX_SHADER);
+	shader.fs = glCompileShader(gl, shader.fs_src, gl.FRAGMENT_SHADER);
+	shader.program = glLinkProgram(gl, shader.vs, shader.fs);
+	shader.uniforms = glGetUniforms(gl, shader.program, {});
+	shader.attribs = glGetAttribs(gl, shader.program, {});
+	return shader;
+}
+
+function glMakeVertex (gl, type_array, size, buffer_type, buffer_draw)
+{
+	var vertex = {};
+	if (type_array instanceof Float32Array) { vertex.type = gl.FLOAT; }
+	else if (type_array instanceof Int8Array) { vertex.type = gl.CHAR; }
+	else if (type_array instanceof Uint8Array) { vertex.type = gl.UNSIGNED_CHAR; }
+	else if (type_array instanceof Int16Array) { vertex.type = gl.SHORT; }
+	else if (type_array instanceof Uint16Array) { vertex.type = gl.UNSIGNED_SHORT; }
+	else if (type_array instanceof Int32Array) { vertex.type = gl.INT; }
+	else if (type_array instanceof Uint32Array) { vertex.type = gl.UNSIGNED_INT; }
+	else { throw new Error(); }
+	vertex.size = size;
+	vertex.count = type_array.length / vertex.size;
+	vertex.type_array = type_array;
+	vertex.buffer = gl.createBuffer();
+	gl.bindBuffer(buffer_type, vertex.buffer);
+	gl.bufferData(buffer_type, vertex.type_array, buffer_draw);
+	return vertex;
 }
