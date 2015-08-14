@@ -30,7 +30,7 @@ atlas.Site = function ()
 	site.y = 0;
 	site.w = 0;
 	site.h = 0;
-	site.rotate = false;
+	site.rotate = 0;
 	site.offset_x = 0;
 	site.offset_y = 0;
 	site.original_w = 0;
@@ -129,7 +129,7 @@ atlas.Data.prototype.importLines = function (lines)
 		{
 			if (match = line.match(/^  rotate: (.*)$/))
 			{
-				site.rotate = (match[1] !== 'false');
+				site.rotate = (match[1] !== 'false')?(-1):(0); // -90 degrees
 			}
 			else if (match = line.match(/^  xy: (.*), (.*)$/))
 			{
@@ -201,7 +201,7 @@ atlas.Data.prototype.exportLines = function (lines)
 			var site = data.sites[site_key];
 			if (site.page !== page) { continue; }
 			lines.push(site_key);
-			lines.push("  rotate: " + (site.rotate?'true':'false'));
+			lines.push("  rotate: " + (site.rotate !== 0?'true':'false'));
 			lines.push("  xy: " + site.x + ", " + site.y);
 			lines.push("  size: " + site.w + ", " + site.h);
 			lines.push("  orig: " + site.original_w + ", " + site.original_h);
@@ -240,11 +240,11 @@ atlas.Data.prototype.importTPS = function (tps_text)
 		site.y = frame.frame.y;
 		site.w = frame.frame.w;
 		site.h = frame.frame.h;
-		site.rotate = frame.rotated;
-		site.offset_x = frame.spriteSourceSize.x;
-		site.offset_y = frame.spriteSourceSize.y;
-		site.original_w = frame.sourceSize.w;
-		site.original_h = frame.sourceSize.h;
+		site.rotate = (frame.rotated)?(1):(0); // 90 degrees
+		site.offset_x = (frame.spriteSourceSize && frame.spriteSourceSize.x) || 0;
+		site.offset_y = (frame.spriteSourceSize && frame.spriteSourceSize.y) || 0;
+		site.original_w = (frame.sourceSize && frame.sourceSize.w) || site.w;
+		site.original_h = (frame.sourceSize && frame.sourceSize.h) || site.h;
 	}
 
 	return data;

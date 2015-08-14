@@ -337,10 +337,15 @@ function mat3x3ApplyAtlasSiteTexcoord (m, site)
 	if (site)
 	{
 		mat3x3Translate(m, site.x, site.y);
-		if (site.rotate)
+		if (site.rotate === -1)
 		{
 			mat3x3Translate(m, 0, site.w); // bottom-left corner
 			mat3x3RotateCosSin(m, 0, -1); // -90 degrees
+		}
+		else if (site.rotate === 1)
+		{
+			mat3x3Translate(m, site.h, 0); // top-right corner
+			mat3x3RotateCosSin(m, 0, 1); // 90 degrees
 		}
 		mat3x3Scale(m, site.w, site.h);
 	}
