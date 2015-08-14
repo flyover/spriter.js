@@ -1,5 +1,8 @@
 goog.provide('main');
 
+goog.require('spriter');
+goog.require('atlas');
+
 main.start = function ()
 {
 	document.body.style.margin = '0px';
@@ -46,10 +49,15 @@ main.start = function ()
 		canvas_gl.style.height = canvas_gl.height + 'px';
 	});
 
+	var positions = new Float32Array([ -1, -1,  1, -1,  1,  1, -1,  1 ]);
+	var texcoords = new Float32Array([  0,  1,  1,  1,  1,  0,  0,  0 ]);
+	var triangles = new Float32Array([ 0, 1, 2, 0, 2, 3 ]);
+
 	if (gl)
 	{
 		var gl_projection = mat3x3Identity(new Float32Array(9));
 		var gl_modelview = mat3x3Identity(new Float32Array(9));
+		var gl_texmatrix = mat3x3Identity(new Float32Array(9));
 		var gl_color = vec4Identity(new Float32Array(4));
 		var gl_shader_vs_src = 
 		[
@@ -57,10 +65,11 @@ main.start = function ()
 			"precision mediump float;",
 			"uniform mat3 uProjection;",
 			"uniform mat3 uModelview;",
+			"uniform mat3 uTexMatrix;",
 			"attribute vec4 aVertex;", // [ x, y, u, v ]
-			"varying vec2 vTextureCoord;",
+			"varying vec3 vTextureCoord;",
 			"void main(void) {",
-			" vTextureCoord = aVertex.zw;",
+			" vTextureCoord = uTexMatrix * vec3(aVertex.zw, 1.0);",
 			" gl_Position = vec4(uProjection * uModelview * vec3(aVertex.xy, 1.0), 1.0);",
 			"}"
 		];
@@ -70,9 +79,9 @@ main.start = function ()
 			"precision mediump float;",
 			"uniform sampler2D uSampler;",
 			"uniform vec4 uColor;",
-			"varying vec2 vTextureCoord;",
+			"varying vec3 vTextureCoord;",
 			"void main(void) {",
-			" gl_FragColor = uColor * texture2D(uSampler, vTextureCoord);",
+			" gl_FragColor = uColor * texture2D(uSampler, vTextureCoord.st);",
 			"}"
 		];
 		var gl_shader = glMakeShader(gl, gl_shader_vs_src, gl_shader_fs_src);
@@ -90,13 +99,13 @@ main.start = function ()
 	var camera_y = canvas.height/2;
 	var camera_zoom = 2;
 
-	var render_debug_data = false;
 	var render_debug_pose = false;
 
 	canvas.addEventListener('click', function () { render_debug_pose = !render_debug_pose; }, false);
 
 	var data = new spriter.Data();
 	var pose = new spriter.Pose(data);
+	var atlas_data = null;
 	var images = {};
 	var gl_textures = {};
 
@@ -106,7 +115,9 @@ main.start = function ()
 
 	var file_path = "GreyGuy/";
 	var file_scml_url = file_path + "player.scml";
+	var file_atlas_url = file_path + "player.tps.json";
 
+	var loading = true;
 	loadText(file_scml_url, function (err, text)
 	{
 		var parser = new DOMParser();
@@ -122,25 +133,80 @@ main.start = function ()
 		var anim_keys = pose.getAnimKeys();
 		pose.setAnim(anim_keys[0]);
 	
-		data.folder_array.forEach(function (folder)
+		loadText(file_atlas_url, function (err, atlas_text)
 		{
-			folder.file_array.forEach(function (file)
+			var counter = 0;
+			var counter_inc = function () { counter++; }
+			var counter_dec = function ()
 			{
-				var image_key = file.name;
-				images[image_key] = loadImage(file_path + file.name, function (err, image)
+				if (--counter === 0)
 				{
-					if (gl)
+					loading = false;
+				}
+			}
+
+			counter_inc();
+
+			if (!err && atlas_text)
+			{
+				atlas_data = new atlas.Data().importTPS(atlas_text);
+
+				// load atlas page images
+				var dir_path = file_atlas_url.slice(0, file_atlas_url.lastIndexOf('/'));
+				atlas_data.pages.forEach(function (page)
+				{
+					var image_key = page.name;
+					var image_url = dir_path + "/" + image_key;
+					counter_inc();
+					var image = images[image_key] = loadImage(image_url, (function (page) { return function (err, image)
 					{
-						var gl_texture = gl_textures[image_key] = gl.createTexture();
-						gl.bindTexture(gl.TEXTURE_2D, gl_texture);
-						gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-					}
+						if (err)
+						{
+							console.log("error loading:", image.src);
+						}
+						page.w = page.w || image.width;
+						page.h = page.h || image.height;
+						if (gl)
+						{
+							var gl_texture = gl_textures[image_key] = gl.createTexture();
+							gl.bindTexture(gl.TEXTURE_2D, gl_texture);
+							gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+							gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+							gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+							gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+							gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+						}
+						counter_dec();
+					}})(page));
 				});
-			});
+			}
+			else
+			{
+				data.folder_array.forEach(function (folder)
+				{
+					folder.file_array.forEach(function (file)
+					{
+						var image_key = file.name;
+						counter_inc();
+						images[image_key] = loadImage(file_path + file.name, function (err, image)
+						{
+							if (gl)
+							{
+								var gl_texture = gl_textures[image_key] = gl.createTexture();
+								gl.bindTexture(gl.TEXTURE_2D, gl_texture);
+								gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+								gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+								gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+								gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+								gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+							}
+							counter_dec();
+						});
+					});
+				});
+			}
+
+			counter_dec();
 		});
 	});
 
@@ -151,6 +217,8 @@ main.start = function ()
 		requestAnimationFrame(loop);
 
 		var dt = time - (prev_time || time); prev_time = time; // ms
+
+		if (loading) { return; }
 
 		pose.update(dt * anim_rate);
 
@@ -210,10 +278,16 @@ main.start = function ()
 				{
 					var folder = data.folder_array[object.folder_index];
 					var file = folder.file_array[object.file_index];
+					var site = atlas_data && atlas_data.sites[file.name];
+					var page = site && atlas_data.pages[site.page];
+					var image_key = (page && page.name) || file.name;
+					var image = images[image_key];
 					ctx.save();
 					applySpace(ctx, object.world_space);
-					ctx.strokeStyle = 'grey';
-					ctx.strokeRect(-file.width/2, -file.height/2, file.width, file.height);
+					ctx.scale(file.width/2, file.height/2);
+					ctx.lineWidth = 1 / Math.min(file.width/2, file.height/2);
+					ctxApplyAtlasSitePosition(ctx, site);
+					ctxDrawMesh(ctx, triangles, positions);
 					ctx.restore();
 				});
 			}
@@ -229,7 +303,9 @@ main.start = function ()
 				{
 					var folder = data.folder_array[object.folder_index];
 					var file = folder.file_array[object.file_index];
-					var image_key = file.name;
+					var site = atlas_data && atlas_data.sites[file.name];
+					var page = site && atlas_data.pages[site.page];
+					var image_key = (page && page.name) || file.name;
 					var image = images[image_key];
 					var gl_texture = gl_textures[image_key];
 					if (image && image.complete && gl_texture)
@@ -237,10 +313,15 @@ main.start = function ()
 						mat3x3Identity(gl_modelview);
 						mat3x3ApplySpace(gl_modelview, object.world_space);
 						mat3x3Scale(gl_modelview, file.width/2, file.height/2);
+						mat3x3Identity(gl_texmatrix);
+						mat3x3ApplyAtlasSitePosition(gl_modelview, site);
+						mat3x3ApplyAtlasPageTexcoord(gl_texmatrix, page);
+						mat3x3ApplyAtlasSiteTexcoord(gl_texmatrix, site);
 						vec4Identity(gl_color); gl_color[3] = object.alpha;
 						gl.useProgram(gl_shader.program);
 						gl.uniformMatrix3fv(gl_shader.uniforms['uProjection'], false, gl_projection);
 						gl.uniformMatrix3fv(gl_shader.uniforms['uModelview'], false, gl_modelview);
+						gl.uniformMatrix3fv(gl_shader.uniforms['uTexMatrix'], false, gl_texmatrix);
 						gl.uniform4fv(gl_shader.uniforms['uColor'], gl_color);
 						gl.activeTexture(gl.TEXTURE0);
 						gl.bindTexture(gl.TEXTURE_2D, gl_texture);
@@ -258,14 +339,18 @@ main.start = function ()
 				{
 					var folder = data.folder_array[object.folder_index];
 					var file = folder.file_array[object.file_index];
-					var image_key = file.name;
+					var site = atlas_data && atlas_data.sites[file.name];
+					var page = site && atlas_data.pages[site.page];
+					var image_key = (page && page.name) || file.name;
 					var image = images[image_key];
 					if (image && image.complete)
 					{
 						ctx.save();
 						applySpace(ctx, object.world_space);
+						ctx.scale(file.width/2, file.height/2);
+						ctxApplyAtlasSitePosition(ctx, site);
 						ctx.globalAlpha = object.alpha;
-						ctx.scale(1, -1); ctx.drawImage(image, -image.width/2, -image.height/2, image.width, image.height);
+						ctxDrawImageMesh(ctx, triangles, positions, texcoords, image, site, page);
 						ctx.restore();
 					}
 				});
@@ -312,6 +397,16 @@ function applySpace (ctx, space)
 	ctx.scale(space.scale.x, space.scale.y);
 }
 
+function ctxApplyAtlasSitePosition (ctx, site)
+{
+	if (site)
+	{
+		ctx.scale(1 / site.original_w, 1 / site.original_h);
+		ctx.translate(2*site.offset_x - (site.original_w - site.w), (site.original_h - site.h) - 2*site.offset_y);
+		ctx.scale(site.w, site.h);
+	}
+}
+
 function drawPoint (ctx, color, scale)
 {
 	scale = scale || 1;
@@ -329,6 +424,85 @@ function drawPoint (ctx, color, scale)
 	ctx.lineTo(0, 24*scale);
 	ctx.strokeStyle = 'green';
 	ctx.stroke();
+}
+
+function ctxDrawMesh (ctx, triangles, positions, stroke_style, fill_style)
+{
+	ctx.beginPath();
+	for (var index = 0; index < triangles.length; )
+	{
+		var triangle = triangles[index++]*2;
+		var x0 = positions[triangle], y0 = positions[triangle+1];
+		var triangle = triangles[index++]*2;
+		var x1 = positions[triangle], y1 = positions[triangle+1];
+		var triangle = triangles[index++]*2;
+		var x2 = positions[triangle], y2 = positions[triangle+1];
+		ctx.moveTo(x0, y0);
+		ctx.lineTo(x1, y1);
+		ctx.lineTo(x2, y2);
+		ctx.lineTo(x0, y0);
+	};
+	if (fill_style)
+	{
+		ctx.fillStyle = fill_style;
+		ctx.fill();
+	}
+	ctx.strokeStyle = stroke_style || 'grey';
+	ctx.stroke();
+}
+
+function ctxDrawImageMesh (ctx, triangles, positions, texcoords, image, site, page)
+{
+	var site_texmatrix = new Float32Array(9);
+	var site_texcoord = new Float32Array(2);
+	mat3x3Identity(site_texmatrix);
+	mat3x3Scale(site_texmatrix, image.width, image.height);
+	mat3x3ApplyAtlasPageTexcoord(site_texmatrix, page);
+	mat3x3ApplyAtlasSiteTexcoord(site_texmatrix, site);
+
+	/// http://www.irrlicht3d.org/pivot/entry.php?id=1329
+	for (var index = 0; index < triangles.length; )
+	{
+		var triangle = triangles[index++]*2;
+		var position = positions.subarray(triangle, triangle+2);
+		var x0 = position[0], y0 = position[1];
+		var texcoord = mat3x3Transform(site_texmatrix, texcoords.subarray(triangle, triangle+2), site_texcoord);
+		var u0 = texcoord[0], v0 = texcoord[1];
+
+		var triangle = triangles[index++]*2;
+		var position = positions.subarray(triangle, triangle+2);
+		var x1 = position[0], y1 = position[1];
+		var texcoord = mat3x3Transform(site_texmatrix, texcoords.subarray(triangle, triangle+2), site_texcoord);
+		var u1 = texcoord[0], v1 = texcoord[1];
+
+		var triangle = triangles[index++]*2;
+		var position = positions.subarray(triangle, triangle+2);
+		var x2 = position[0], y2 = position[1];
+		var texcoord = mat3x3Transform(site_texmatrix, texcoords.subarray(triangle, triangle+2), site_texcoord);
+		var u2 = texcoord[0], v2 = texcoord[1];
+
+		ctx.save();
+		ctx.beginPath();
+		ctx.moveTo(x0, y0);
+		ctx.lineTo(x1, y1);
+		ctx.lineTo(x2, y2);
+		ctx.closePath();
+		ctx.clip();
+		x1 -= x0; y1 -= y0;
+		x2 -= x0; y2 -= y0;
+		u1 -= u0; v1 -= v0;
+		u2 -= u0; v2 -= v0;
+		var id = 1 / (u1*v2 - u2*v1);
+		var a = id * (v2*x1 - v1*x2);
+		var b = id * (v2*y1 - v1*y2);
+		var c = id * (u1*x2 - u2*x1);
+		var d = id * (u1*y2 - u2*y1);
+		var e = x0 - (a*u0 + c*v0);
+		var f = y0 - (b*u0 + d*v0);
+		ctx.transform(a, b, c, d, e, f);
+		ctx.drawImage(image, 0, 0);
+		ctx.restore();
+	}
 }
 
 function vec4Identity (v)
@@ -383,11 +557,57 @@ function mat3x3Scale (m, x, y)
 	return m;
 }
 
+function mat3x3Transform (m, v, out)
+{
+	var x = m[0]*v[0] + m[3]*v[1] + m[6];
+	var y = m[1]*v[0] + m[4]*v[1] + m[7];
+	var w = m[2]*v[0] + m[5]*v[1] + m[8];
+	var iw = (w)?(1/w):(1);
+	out[0] = x * iw;
+	out[1] = y * iw;
+	return out;
+}
+
 function mat3x3ApplySpace (m, space)
 {
 	mat3x3Translate(m, space.position.x, space.position.y);
 	mat3x3Rotate(m, space.rotation.rad);
 	mat3x3Scale(m, space.scale.x, space.scale.y);
+	return m;
+}
+
+function mat3x3ApplyAtlasPageTexcoord (m, page)
+{
+	if (page)
+	{
+		mat3x3Scale(m, 1 / page.w, 1 / page.h);
+	}
+	return m;
+}
+
+function mat3x3ApplyAtlasSiteTexcoord (m, site)
+{
+	if (site)
+	{
+		mat3x3Translate(m, site.x, site.y);
+		if (site.rotate)
+		{
+			mat3x3Translate(m, 0, site.w); // bottom-left corner
+			mat3x3RotateCosSin(m, 0, -1); // -90 degrees
+		}
+		mat3x3Scale(m, site.w, site.h);
+	}
+	return m;
+}
+
+function mat3x3ApplyAtlasSitePosition (m, site)
+{
+	if (site)
+	{
+		mat3x3Scale(m, 1 / site.original_w, 1 / site.original_h);
+		mat3x3Translate(m, 2*site.offset_x - (site.original_w - site.w), (site.original_h - site.h) - 2*site.offset_y);
+		mat3x3Scale(m, site.w, site.h);
+	}
 	return m;
 }
 
