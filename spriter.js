@@ -1883,6 +1883,18 @@ spriter.Pose.prototype.curAnim = function ()
 }
 
 /**
+ * @return {number} 
+ */
+spriter.Pose.prototype.curAnimLength = function ()
+{
+	var pose = this;
+	var data = pose.data;
+	var entity = data && data.entity_map[pose.entity_key];
+	var anim = entity && entity.animation_map[pose.anim_key];
+	return (anim && anim.length) || 0;
+}
+
+/**
  * @return {string}
  */
 spriter.Pose.prototype.getAnim = function ()
