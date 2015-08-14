@@ -9,6 +9,34 @@ main.start = function ()
 	document.body.style.border = '0px';
 	document.body.style.padding = '0px';
 	document.body.style.overflow = 'hidden';
+	document.body.style.fontFamily = '"PT Sans",Arial,"Helvetica Neue",Helvetica,Tahoma,sans-serif';
+
+	var controls = document.createElement('div');
+	controls.style.position = 'absolute';
+	document.body.appendChild(controls);
+
+	var add_checkbox_control = function (text, checked, callback)
+	{
+		var control = document.createElement('div');
+		var input = document.createElement('input');
+		input.type = 'checkbox';
+		input.checked = checked;
+		input.addEventListener('click', function () { callback(this.checked); }, false);
+		control.appendChild(input);
+		var label = document.createElement('label');
+		label.innerHTML = text;
+		control.appendChild(label);
+		controls.appendChild(control);
+	}
+
+	var messages = document.createElement('div');
+	messages.style.position = 'absolute';
+	messages.style.left = '0px';
+	messages.style.right = '0px';
+	messages.style.bottom = '0px';
+	messages.style.textAlign = 'center';
+	messages.style.zIndex = -1; // behind controls
+	document.body.appendChild(messages);
 
 	var canvas = document.createElement('canvas');
 	canvas.width = window.innerWidth;
@@ -16,6 +44,7 @@ main.start = function ()
 	canvas.style.position = 'absolute';
 	canvas.style.width = canvas.width + 'px';
 	canvas.style.height = canvas.height + 'px';
+	canvas.style.zIndex = -1; // behind controls
 	
 	document.body.appendChild(canvas);
 
@@ -35,7 +64,7 @@ main.start = function ()
 	canvas_gl.style.position = 'absolute';
 	canvas_gl.style.width = canvas_gl.width + 'px';
 	canvas_gl.style.height = canvas_gl.height + 'px';
-	canvas_gl.style.zIndex = -1; // behind 2D context canvas
+	canvas_gl.style.zIndex = -2; // behind 2D context canvas
 
 	document.body.appendChild(canvas_gl);
 
@@ -96,100 +125,90 @@ main.start = function ()
 	}
 
 	var camera_x = 0;
-	var camera_y = canvas.height/2;
+	var camera_y = canvas.height/3;
 	var camera_zoom = 2;
 
-	var render_debug_pose = false;
+	var enable_render_webgl = !!gl;
+	var enable_render_ctx2d = !!ctx && !enable_render_webgl;
 
-	canvas.addEventListener('click', function () { render_debug_pose = !render_debug_pose; }, false);
+	add_checkbox_control("GL", enable_render_webgl, function (checked) { enable_render_webgl = checked; });
+	add_checkbox_control("2D", enable_render_ctx2d, function (checked) { enable_render_ctx2d = checked; });
 
-	var data = new spriter.Data();
-	var pose = new spriter.Pose(data);
+	var enable_render_debug_pose = false;
+
+	add_checkbox_control("2D Debug Pose", enable_render_debug_pose, function (checked) { enable_render_debug_pose = checked; });
+
+	var spriter_pose = null;
 	var atlas_data = null;
 	var images = {};
 	var gl_textures = {};
 
 	var anim_time = 0;
+	var anim_length = 0;
 	var anim_rate = 1;
 	var anim_repeat = 2;
 
-	var file_path = "GreyGuy/";
-	var file_scml_url = file_path + "player.scml";
-	var file_atlas_url = file_path + "player.tps.json";
-
-	var loading = true;
-	loadText(file_scml_url, function (err, text)
+	var loadFile = function (file, callback)
 	{
-		var parser = new DOMParser();
-		var xml = parser.parseFromString(text, 'text/xml');
-		var json_string = xml2json(xml, '\t');
-		var json = JSON.parse(json_string);
+		//render_ctx2d.dropPose(spriter_pose, atlas_data);
+		//render_webgl.dropPose(spriter_pose, atlas_data);
 
-		data.load(json);
+		spriter_pose = null;
+		atlas_data = null;
 
-		var entity_keys = pose.getEntityKeys();
-		pose.setEntity(entity_keys[0]);
-	
-		var anim_keys = pose.getAnimKeys();
-		pose.setAnim(anim_keys[0]);
-	
-		loadText(file_atlas_url, function (err, atlas_text)
+		var file_path = file.path;
+		var file_scml_url = file_path + file.scml_url;
+		var file_atlas_url = (file.atlas_url)?(file_path + file.atlas_url):("");
+
+		loadText(file_scml_url, function (err, text)
 		{
-			var counter = 0;
-			var counter_inc = function () { counter++; }
-			var counter_dec = function ()
+			if (err)
 			{
-				if (--counter === 0)
+				callback();
+				return;
+			}
+
+			var parser = new DOMParser();
+			var xml = parser.parseFromString(text, 'text/xml');
+			var json_text = xml2json(xml, '\t');
+
+			spriter_pose = new spriter.Pose(new spriter.Data().load(JSON.parse(json_text)));
+
+			loadText(file_atlas_url, function (err, atlas_text)
+			{
+				var counter = 0;
+				var counter_inc = function () { counter++; }
+				var counter_dec = function ()
 				{
-					loading = false;
+					if (--counter === 0)
+					{
+						//render_ctx2d.loadPose(spriter_pose, atlas_data, images);
+						//render_webgl.loadPose(spriter_pose, atlas_data, images);
+						callback();
+					}
 				}
-			}
 
-			counter_inc();
+				counter_inc();
 
-			if (!err && atlas_text)
-			{
-				atlas_data = new atlas.Data().importTPS(atlas_text);
-
-				// load atlas page images
-				var dir_path = file_atlas_url.slice(0, file_atlas_url.lastIndexOf('/'));
-				atlas_data.pages.forEach(function (page)
+				if (!err && atlas_text)
 				{
-					var image_key = page.name;
-					var image_url = dir_path + "/" + image_key;
-					counter_inc();
-					var image = images[image_key] = loadImage(image_url, (function (page) { return function (err, image)
+					atlas_data = new atlas.Data().importTPS(atlas_text);
+
+					// load atlas page images
+					var dir_path = file_atlas_url.slice(0, file_atlas_url.lastIndexOf('/'));
+					atlas_data.pages.forEach(function (page)
 					{
-						if (err)
-						{
-							console.log("error loading:", image.src);
-						}
-						page.w = page.w || image.width;
-						page.h = page.h || image.height;
-						if (gl)
-						{
-							var gl_texture = gl_textures[image_key] = gl.createTexture();
-							gl.bindTexture(gl.TEXTURE_2D, gl_texture);
-							gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-							gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-							gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-							gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-							gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-						}
-						counter_dec();
-					}})(page));
-				});
-			}
-			else
-			{
-				data.folder_array.forEach(function (folder)
-				{
-					folder.file_array.forEach(function (file)
-					{
-						var image_key = file.name;
+						var image_key = page.name;
+						var image_url = dir_path + "/" + image_key;
 						counter_inc();
-						images[image_key] = loadImage(file_path + file.name, function (err, image)
+						var image = images[image_key] = loadImage(image_url, (function (page) { return function (err, image)
 						{
+							if (err)
+							{
+								console.log("error loading:", image.src);
+							}
+							page.w = page.w || image.width;
+							page.h = page.h || image.height;
 							if (gl)
 							{
 								var gl_texture = gl_textures[image_key] = gl.createTexture();
@@ -201,13 +220,74 @@ main.start = function ()
 								gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 							}
 							counter_dec();
+						}})(page));
+					});
+				}
+				else
+				{
+					spriter_pose.data.folder_array.forEach(function (folder)
+					{
+						folder.file_array.forEach(function (file)
+						{
+							var image_key = file.name;
+							counter_inc();
+							var image = images[image_key] = loadImage(file_path + file.name, function (err, image)
+							{
+								if (err)
+								{
+									console.log("error loading:", image.src);
+								}
+								if (gl)
+								{
+									var gl_texture = gl_textures[image_key] = gl.createTexture();
+									gl.bindTexture(gl.TEXTURE_2D, gl_texture);
+									gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+									gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+									gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+									gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+									gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+								}
+								counter_dec();
+							});
 						});
 					});
-				});
-			}
+				}
 
-			counter_dec();
+				counter_dec();
+			});
 		});
+	}
+
+	var files = [];
+
+	var add_file = function (path, scml_url, atlas_url)
+	{
+		var file = {};
+		file.path = path;
+		file.scml_url = scml_url;
+		file.atlas_url = atlas_url || "";
+		files.push(file);
+	}
+
+	add_file("GreyGuy/", "player.scml", "player.tps.json");
+
+	var file_index = 0;
+	var entity_index = 0;
+	var anim_index = 0;
+
+	var loading = false;
+
+	var file = files[file_index];
+	messages.innerHTML = "loading";
+	loading = true; loadFile(file, function ()
+	{
+		loading = false;
+		var entity_keys = spriter_pose.getEntityKeys();
+		spriter_pose.setEntity(entity_keys[entity_index = 0]);
+		var anim_keys = spriter_pose.getAnimKeys();
+		spriter_pose.setAnim(anim_keys[anim_index = 0]);
+		spriter_pose.setTime(anim_time = 0);
+		anim_length = spriter_pose.curAnimLength() || 1000;
 	});
 
 	var prev_time = 0;
@@ -218,36 +298,56 @@ main.start = function ()
 
 		var dt = time - (prev_time || time); prev_time = time; // ms
 
-		if (loading) { return; }
-
-		pose.update(dt * anim_rate);
-
-		anim_time += dt * anim_rate;
-
-		var anim = pose.curAnim();
-		if (anim && (anim_time >= (anim.length * anim_repeat)))
+		if (!loading)
 		{
-			var anim_keys = pose.getAnimKeys();
-			var anim_key = anim_keys[(anim_keys.indexOf(pose.getAnim()) + 1) % anim_keys.length];
-			pose.setAnim(anim_key);
-			pose.setTime(0);
-			anim_time = 0;
-		}
+			spriter_pose.update(dt * anim_rate);
 
-		pose.strike();
+			anim_time += dt * anim_rate;
+
+			var entity_keys = spriter_pose.getEntityKeys();
+			var anim_keys = spriter_pose.getAnimKeys();
+
+			if (anim_time >= (anim_length * anim_repeat))
+			{
+				if (++anim_index >= anim_keys.length)
+				{
+					anim_index = 0;
+					if (++entity_index >= entity_keys.length)
+					{
+						entity_index = 0;
+						if (files.length > 1)
+						{
+							if (++file_index >= files.length)
+							{
+								file_index = 0;
+							}
+							file = files[file_index];
+							messages.innerHTML = "loading";
+							loading = true; loadFile(file, function ()
+							{
+								loading = false;
+								spriter_pose.setEntity(entity_keys[entity_index = 0]);
+								spriter_pose.setAnim(anim_keys[anim_index = 0]);
+								spriter_pose.setTime(anim_time = 0);
+								anim_length = spriter_pose.curAnimLength() || 1000;
+							});
+							return;
+						}
+					}
+					spriter_pose.setEntity(entity_keys[entity_index]);
+				}
+				spriter_pose.setAnim(anim_keys[anim_index]);
+				spriter_pose.setTime(anim_time = 0);
+				anim_length = spriter_pose.curAnimLength() || 1000;
+			}
+
+			messages.innerHTML = "entity: " + entity_keys[entity_index] + ", anim: " + anim_keys[anim_index] + "<br>" + file.path + file.scml_url;
+		}
 
 		if (ctx)
 		{
 			ctx.setTransform(1, 0, 0, 1, 0, 0);
-
 			ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-			
-			// origin at center, x right, y up
-			ctx.translate(ctx.canvas.width/2, ctx.canvas.height/2); ctx.scale(1, -1);
-			
-			ctx.translate(-camera_x, -camera_y);
-			ctx.scale(camera_zoom, camera_zoom);
-			ctx.lineWidth = 1 / camera_zoom;
 		}
 
 		if (gl)
@@ -255,35 +355,69 @@ main.start = function ()
 			gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
 			gl.clearColor(0, 0, 0, 0);
 			gl.clear(gl.COLOR_BUFFER_BIT);
-
-			mat3x3Identity(gl_projection);
-			mat3x3Ortho(gl_projection, -canvas_gl.width/2, canvas_gl.width/2, -canvas_gl.height/2, canvas_gl.height/2);
-			mat3x3Translate(gl_projection, -camera_x, -camera_y);
-			mat3x3Scale(gl_projection, camera_zoom, camera_zoom);
 		}
 
-		if (render_debug_pose)
+		if (loading) { return; }
+
+		spriter_pose.strike();
+
+		if (ctx)
 		{
-			if (ctx)
+			// origin at center, x right, y up
+			ctx.translate(ctx.canvas.width/2, ctx.canvas.height/2); ctx.scale(1, -1);
+
+			if (enable_render_ctx2d && enable_render_webgl)
 			{
-				pose.bone_array.forEach(function (bone)
+				ctx.translate(-ctx.canvas.width/4, 0);
+			}
+
+			ctx.translate(-camera_x, -camera_y);
+			ctx.scale(camera_zoom, camera_zoom);
+			ctx.lineWidth = 1 / camera_zoom;
+
+			if (enable_render_ctx2d)
+			{
+				spriter_pose.object_array.forEach(function (object)
+				{
+					var folder = spriter_pose.data.folder_array[object.folder_index];
+					var file = folder.file_array[object.file_index];
+					var site = atlas_data && atlas_data.sites[file.name];
+					var page = site && atlas_data.pages[site.page];
+					var image_key = (page && page.name) || file.name;
+					var image = images[image_key];
+					if (image && image.complete)
+					{
+						ctx.save();
+						ctxApplySpace(ctx, object.world_space);
+						ctx.scale(file.width/2, file.height/2);
+						ctxApplyAtlasSitePosition(ctx, site);
+						ctx.globalAlpha = object.alpha;
+						ctxDrawImageMesh(ctx, triangles, positions, texcoords, image, site, page);
+						ctx.restore();
+					}
+				});
+			}
+
+			if (enable_render_debug_pose)
+			{
+				spriter_pose.bone_array.forEach(function (bone)
 				{
 					ctx.save();
-					applySpace(ctx, bone.world_space);
-					drawPoint(ctx);
+					ctxApplySpace(ctx, bone.world_space);
+					ctxDrawPoint(ctx);
 					ctx.restore();
 				});
 
-				pose.object_array.forEach(function (object)
+				spriter_pose.object_array.forEach(function (object)
 				{
-					var folder = data.folder_array[object.folder_index];
+					var folder = spriter_pose.data.folder_array[object.folder_index];
 					var file = folder.file_array[object.file_index];
 					var site = atlas_data && atlas_data.sites[file.name];
 					var page = site && atlas_data.pages[site.page];
 					var image_key = (page && page.name) || file.name;
 					var image = images[image_key];
 					ctx.save();
-					applySpace(ctx, object.world_space);
+					ctxApplySpace(ctx, object.world_space);
 					ctx.scale(file.width/2, file.height/2);
 					ctx.lineWidth = 1 / Math.min(file.width/2, file.height/2);
 					ctxApplyAtlasSitePosition(ctx, site);
@@ -292,16 +426,28 @@ main.start = function ()
 				});
 			}
 		}
-		else
+
+		if (gl)
 		{
-			if (gl)
+			mat3x3Identity(gl_projection);
+			mat3x3Ortho(gl_projection, -gl.canvas.width/2, gl.canvas.width/2, -gl.canvas.height/2, gl.canvas.height/2);
+
+			if (enable_render_ctx2d && enable_render_webgl)
+			{
+				mat3x3Translate(gl_projection, gl.canvas.width/4, 0);
+			}
+
+			mat3x3Translate(gl_projection, -camera_x, -camera_y);
+			mat3x3Scale(gl_projection, camera_zoom, camera_zoom);
+
+			if (enable_render_webgl)
 			{
 				gl.enable(gl.BLEND);
 				gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-				pose.object_array.forEach(function (object)
+				spriter_pose.object_array.forEach(function (object)
 				{
-					var folder = data.folder_array[object.folder_index];
+					var folder = spriter_pose.data.folder_array[object.folder_index];
 					var file = folder.file_array[object.file_index];
 					var site = atlas_data && atlas_data.sites[file.name];
 					var page = site && atlas_data.pages[site.page];
@@ -313,8 +459,8 @@ main.start = function ()
 						mat3x3Identity(gl_modelview);
 						mat3x3ApplySpace(gl_modelview, object.world_space);
 						mat3x3Scale(gl_modelview, file.width/2, file.height/2);
-						mat3x3Identity(gl_texmatrix);
 						mat3x3ApplyAtlasSitePosition(gl_modelview, site);
+						mat3x3Identity(gl_texmatrix);
 						mat3x3ApplyAtlasPageTexcoord(gl_texmatrix, page);
 						mat3x3ApplyAtlasSiteTexcoord(gl_texmatrix, site);
 						vec4Identity(gl_color); gl_color[3] = object.alpha;
@@ -326,32 +472,9 @@ main.start = function ()
 						gl.activeTexture(gl.TEXTURE0);
 						gl.bindTexture(gl.TEXTURE_2D, gl_texture);
 						gl.uniform1i(gl_shader.uniforms['uSampler'], 0);
-						gl.bindBuffer(gl.ARRAY_BUFFER, gl_vertex.buffer);
-						gl.vertexAttribPointer(gl_shader.attribs['aVertex'], gl_vertex.size, gl_vertex.type, false, 0, 0);
-						gl.enableVertexAttribArray(gl_shader.attribs['aVertex']);
+						glSetupAttribute(gl, gl_shader, 'aVertex', gl_vertex);
 						gl.drawArrays(gl.TRIANGLE_FAN, 0, gl_vertex.count);
-					}
-				});
-			}
-			else if (ctx)
-			{
-				pose.object_array.forEach(function (object)
-				{
-					var folder = data.folder_array[object.folder_index];
-					var file = folder.file_array[object.file_index];
-					var site = atlas_data && atlas_data.sites[file.name];
-					var page = site && atlas_data.pages[site.page];
-					var image_key = (page && page.name) || file.name;
-					var image = images[image_key];
-					if (image && image.complete)
-					{
-						ctx.save();
-						applySpace(ctx, object.world_space);
-						ctx.scale(file.width/2, file.height/2);
-						ctxApplyAtlasSitePosition(ctx, site);
-						ctx.globalAlpha = object.alpha;
-						ctxDrawImageMesh(ctx, triangles, positions, texcoords, image, site, page);
-						ctx.restore();
+						glResetAttribute(gl, gl_shader, 'aVertex', gl_vertex);
 					}
 				});
 			}
@@ -383,6 +506,7 @@ function loadText (url, callback)
 function loadImage (url, callback)
 {
 	var image = new Image();
+	image.crossOrigin = "Anonymous";
 	image.addEventListener('error', function (event) { callback("error", null); }, false);
 	image.addEventListener('abort', function (event) { callback("abort", null); }, false);
 	image.addEventListener('load', function (event) { callback(null, image); }, false);
@@ -390,11 +514,14 @@ function loadImage (url, callback)
 	return image;	
 }
 
-function applySpace (ctx, space)
+function ctxApplySpace (ctx, space)
 {
-	ctx.translate(space.position.x, space.position.y);
-	ctx.rotate(space.rotation.rad);
-	ctx.scale(space.scale.x, space.scale.y);
+	if (space)
+	{
+		ctx.translate(space.position.x, space.position.y);
+		ctx.rotate(space.rotation.rad);
+		ctx.scale(space.scale.x, space.scale.y);
+	}
 }
 
 function ctxApplyAtlasSitePosition (ctx, site)
@@ -407,7 +534,16 @@ function ctxApplyAtlasSitePosition (ctx, site)
 	}
 }
 
-function drawPoint (ctx, color, scale)
+function ctxDrawCircle (ctx, color, scale)
+{
+	scale = scale || 1;
+	ctx.beginPath();
+	ctx.arc(0, 0, 12*scale, 0, 2*Math.PI, false);
+	ctx.strokeStyle = color || 'grey';
+	ctx.stroke();
+}
+
+function ctxDrawPoint (ctx, color, scale)
 {
 	scale = scale || 1;
 	ctx.beginPath();
@@ -570,9 +706,12 @@ function mat3x3Transform (m, v, out)
 
 function mat3x3ApplySpace (m, space)
 {
-	mat3x3Translate(m, space.position.x, space.position.y);
-	mat3x3Rotate(m, space.rotation.rad);
-	mat3x3Scale(m, space.scale.x, space.scale.y);
+	if (space)
+	{
+		mat3x3Translate(m, space.position.x, space.position.y);
+		mat3x3Rotate(m, space.rotation.rad);
+		mat3x3Scale(m, space.scale.x, space.scale.y);
+	}
 	return m;
 }
 
@@ -613,12 +752,22 @@ function mat3x3ApplyAtlasSitePosition (m, site)
 
 function glCompileShader (gl, src, type)
 {
+	function flatten (array, out)
+	{
+		out = out || [];
+		array.forEach(function (value)
+		{
+			if (Array.isArray(value)) { flatten(value, out); } else { out.push(value); }
+		});
+		return out;
+	}
+	src = flatten(src);
 	var shader = gl.createShader(type);
 	gl.shaderSource(shader, src.join('\n'));
 	gl.compileShader(shader);
 	if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
 	{
-		console.log(src);
+		src.forEach(function (line, index) { console.log(index + 1, line); });
 		console.log(gl.getShaderInfoLog(shader));
 		gl.deleteShader(shader);
 		shader = null;
@@ -646,9 +795,9 @@ function glLinkProgram (gl, vs, fs)
 function glGetUniforms (gl, program, uniforms)
 {
 	var count = /** @type {number} */ (gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS));
-	for (var i = 0; i < count; ++i)
+	for (var index = 0; index < count; ++index)
 	{
-		var uniform = gl.getActiveUniform(program, i);
+		var uniform = gl.getActiveUniform(program, index);
 		uniforms[uniform.name] = gl.getUniformLocation(program, uniform.name);
 	}
 	return uniforms;
@@ -657,9 +806,9 @@ function glGetUniforms (gl, program, uniforms)
 function glGetAttribs (gl, program, attribs)
 {
 	var count = /** @type {number} */ (gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES));
-	for (var i = 0; i < count; ++i)
+	for (var index = 0; index < count; ++index)
 	{
-		var attrib = gl.getActiveAttrib(program, i);
+		var attrib = gl.getActiveAttrib(program, index);
 		attribs[attrib.name] = gl.getAttribLocation(program, attrib.name);
 	}
 	return attribs;
@@ -682,18 +831,62 @@ function glMakeVertex (gl, type_array, size, buffer_type, buffer_draw)
 {
 	var vertex = {};
 	if (type_array instanceof Float32Array) { vertex.type = gl.FLOAT; }
-	else if (type_array instanceof Int8Array) { vertex.type = gl.CHAR; }
-	else if (type_array instanceof Uint8Array) { vertex.type = gl.UNSIGNED_CHAR; }
+	else if (type_array instanceof Int8Array) { vertex.type = gl.BYTE; }
+	else if (type_array instanceof Uint8Array) { vertex.type = gl.UNSIGNED_BYTE; }
 	else if (type_array instanceof Int16Array) { vertex.type = gl.SHORT; }
 	else if (type_array instanceof Uint16Array) { vertex.type = gl.UNSIGNED_SHORT; }
 	else if (type_array instanceof Int32Array) { vertex.type = gl.INT; }
 	else if (type_array instanceof Uint32Array) { vertex.type = gl.UNSIGNED_INT; }
-	else { throw new Error(); }
+	else { vertex.type = gl.NONE; throw new Error(); }
 	vertex.size = size;
 	vertex.count = type_array.length / vertex.size;
 	vertex.type_array = type_array;
 	vertex.buffer = gl.createBuffer();
-	gl.bindBuffer(buffer_type, vertex.buffer);
-	gl.bufferData(buffer_type, vertex.type_array, buffer_draw);
+	vertex.buffer_type = buffer_type;
+	vertex.buffer_draw = buffer_draw;
+	gl.bindBuffer(vertex.buffer_type, vertex.buffer);
+	gl.bufferData(vertex.buffer_type, vertex.type_array, vertex.buffer_draw);
 	return vertex;
+}
+
+function glSetupAttribute(gl, shader, format, vertex, count)
+{
+	count = count || 0;
+	gl.bindBuffer(vertex.buffer_type, vertex.buffer);
+	if (count > 0)
+	{
+		var sizeof_vertex = vertex.type_array.BYTES_PER_ELEMENT * vertex.size; // in bytes
+		var stride = sizeof_vertex * count;
+		for (var index = 0; index < count; ++index)
+		{
+			var offset = sizeof_vertex * index;
+			var attrib = shader.attribs[format.replace(/{index}/g, index)];
+			gl.vertexAttribPointer(attrib, vertex.size, vertex.type, false, stride, offset);
+			gl.enableVertexAttribArray(attrib);
+		}
+	}
+	else
+	{
+		var attrib = shader.attribs[format];
+		gl.vertexAttribPointer(attrib, vertex.size, vertex.type, false, 0, 0);
+		gl.enableVertexAttribArray(attrib);
+	}
+}
+
+function glResetAttribute(gl, shader, format, vertex, count)
+{
+	count = count || 0;
+	if (count > 0)
+	{
+		for (var index = 0; index < count; ++index)
+		{
+			var attrib = shader.attribs[format.replace(/{index}/g, index)];
+			gl.disableVertexAttribArray(attrib);
+		}
+	}
+	else
+	{
+		var attrib = shader.attribs[format];
+		gl.disableVertexAttribArray(attrib);
+	}
 }
