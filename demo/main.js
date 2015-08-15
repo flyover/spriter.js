@@ -85,8 +85,8 @@ main.start = function ()
 	var render_webgl = new renderWebGL(gl);
 
 	var camera_x = 0;
-	var camera_y = canvas.height/3;
-	var camera_zoom = 2;
+	var camera_y = 0;
+	var camera_zoom = 1;
 
 	var enable_render_webgl = !!gl;
 	var enable_render_ctx2d = !!ctx && !enable_render_webgl;
@@ -152,7 +152,7 @@ main.start = function ()
 
 				if (!err && atlas_text)
 				{
-					atlas_data = new atlas.Data().importTPS(atlas_text);
+					atlas_data = new atlas.Data().importTpsText(atlas_text);
 
 					// load atlas page images
 					var dir_path = file_atlas_url.slice(0, file_atlas_url.lastIndexOf('/'));
@@ -210,6 +210,11 @@ main.start = function ()
 	}
 
 	add_file("GreyGuy/", "player.scml", "player.tps.json");
+	add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/brawler/", "brawler.scml");
+	add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/imp/", "imp.scml");
+	add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/mage/", "mage.scml");
+	add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/orc/", "orc.scml");
+	add_file("https://raw.githubusercontent.com/Malhavok/Spriter2Unity/master/examples/Crabby/Spriter/", "Crabby.scml");
 
 	var file_index = 0;
 	var entity_index = 0;
@@ -244,14 +249,13 @@ main.start = function ()
 
 			anim_time += dt * anim_rate;
 
-			var entity_keys = spriter_pose.getEntityKeys();
-			var anim_keys = spriter_pose.getAnimKeys();
-
 			if (anim_time >= (anim_length * anim_repeat))
 			{
+				var anim_keys = spriter_pose.getAnimKeys();
 				if (++anim_index >= anim_keys.length)
 				{
 					anim_index = 0;
+					var entity_keys = spriter_pose.getEntityKeys();
 					if (++entity_index >= entity_keys.length)
 					{
 						entity_index = 0;
@@ -266,7 +270,9 @@ main.start = function ()
 							loading = true; loadFile(file, function ()
 							{
 								loading = false;
+								var entity_keys = spriter_pose.getEntityKeys();
 								spriter_pose.setEntity(entity_keys[entity_index = 0]);
+								var anim_keys = spriter_pose.getAnimKeys();
 								spriter_pose.setAnim(anim_keys[anim_index = 0]);
 								spriter_pose.setTime(anim_time = 0);
 								anim_length = spriter_pose.curAnimLength() || 1000;
@@ -281,6 +287,8 @@ main.start = function ()
 				anim_length = spriter_pose.curAnimLength() || 1000;
 			}
 
+			var entity_keys = spriter_pose.getEntityKeys();
+			var anim_keys = spriter_pose.getAnimKeys();
 			messages.innerHTML = "entity: " + entity_keys[entity_index] + ", anim: " + anim_keys[anim_index] + "<br>" + file.path + file.scml_url;
 		}
 

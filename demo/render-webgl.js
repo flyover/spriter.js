@@ -141,23 +141,14 @@ renderWebGL.prototype.loadPose = function (spriter_pose, atlas_data, images)
 			folder.file_array.forEach(function (file)
 			{
 				var image_key = file.name;
-				var image = images[image_key] = loadImage(file_path + file.name, function (err, image)
-				{
-					if (err)
-					{
-						console.log("error loading:", image.src);
-					}
-					if (gl)
-					{
-						var gl_texture = gl_textures[image_key] = gl.createTexture();
-						gl.bindTexture(gl.TEXTURE_2D, gl_texture);
-						gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-					}
-				});
+				var image = images[image_key];
+				var gl_texture = render.gl_textures[image_key] = gl.createTexture();
+				gl.bindTexture(gl.TEXTURE_2D, gl_texture);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 			});
 		});
 	}
@@ -190,7 +181,9 @@ renderWebGL.prototype.drawPose = function (spriter_pose, atlas_data)
 	spriter_pose.object_array.forEach(function (object)
 	{
 		var folder = spriter_pose.data.folder_array[object.folder_index];
+		if (!folder) { return; }
 		var file = folder.file_array[object.file_index];
+		if (!file) { return; }
 		var site = atlas_data && atlas_data.sites[file.name];
 		var page = site && atlas_data.pages[site.page];
 		var image_key = (page && page.name) || file.name;

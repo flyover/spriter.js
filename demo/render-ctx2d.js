@@ -51,16 +51,6 @@ renderCtx2D.prototype.loadPose = function (spriter_pose, atlas_data, images)
  * @param {spine.Pose} spriter_pose
  * @param {atlas.Data} atlas_data
  */
-renderCtx2D.prototype.updatePose = function (spriter_pose, atlas_data)
-{
-	var render = this;
-}
-
-/**
- * @return {void}
- * @param {spine.Pose} spriter_pose
- * @param {atlas.Data} atlas_data
- */
 renderCtx2D.prototype.drawPose = function (spriter_pose, atlas_data)
 {
 	var render = this;
@@ -75,7 +65,9 @@ renderCtx2D.prototype.drawPose = function (spriter_pose, atlas_data)
 	spriter_pose.object_array.forEach(function (object)
 	{
 		var folder = spriter_pose.data.folder_array[object.folder_index];
+		if (!folder) { return; }
 		var file = folder.file_array[object.file_index];
+		if (!file) { return; }
 		var site = atlas_data && atlas_data.sites[file.name];
 		var page = site && atlas_data.pages[site.page];
 		var image_key = (page && page.name) || file.name;
@@ -119,7 +111,9 @@ renderCtx2D.prototype.drawDebugPose = function (spriter_pose, atlas_data)
 	spriter_pose.object_array.forEach(function (object)
 	{
 		var folder = spriter_pose.data.folder_array[object.folder_index];
+		if (!folder) { return; }
 		var file = folder.file_array[object.file_index];
+		if (!file) { return; }
 		var site = atlas_data && atlas_data.sites[file.name];
 		var page = site && atlas_data.pages[site.page];
 		var image_key = (page && page.name) || file.name;
