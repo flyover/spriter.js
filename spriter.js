@@ -276,15 +276,26 @@ spriter.wrapAngleRadians = function (angle)
  */
 spriter.tweenAngleRadians = function (a, b, t, spin)
 {
-	if ((spin > 0) && (a > b))
+	if (spin === 0)
 	{
-		return a + ((b + 2*Math.PI - a) * t); // counter clockwise
+		return a;
 	}
-	else if ((spin < 0) && (a < b))
+	else if (spin > 0)
 	{
-		return a + ((b - 2*Math.PI - a) * t); // clockwise
+		if ((b - a) < 0)
+		{
+			b += 2*Math.PI;
+		}
 	}
-	return a + ((b - a) * t);
+	else if (spin < 0)
+	{
+		if ((b - a) > 0)
+		{
+			b -= 2*Math.PI;
+		}
+	}
+
+	return spriter.wrapAngleRadians(a + (spriter.wrapAngleRadians(b - a) * t));
 }
 
 /**
@@ -1627,15 +1638,19 @@ spriter.Entity.prototype.load = function (json)
  */
 spriter.Data = function ()
 {
+	var data = this;
+	data.folder_array = [];
+	data.entity_map = {};
+	data.entity_keys = [];
 }
 
 /** @type {Array.<spriter.Folder>} */
-spriter.Data.prototype.folder_array = null;
+spriter.Data.prototype.folder_array;
 
 /** @type {Object.<string,spriter.Entity>} */
-spriter.Data.prototype.entity_map = null;
+spriter.Data.prototype.entity_map;
 /** @type {Array.<string>} */
-spriter.Data.prototype.entity_keys = null;
+spriter.Data.prototype.entity_keys;
 
 /**
  * @return {spriter.Data} 
@@ -1743,7 +1758,7 @@ spriter.Data.prototype.getAnims = function (entity_key)
 	{
 		return entity.animation_map;
 	}
-	return null;
+	return {};
 }
 
 /**
@@ -1757,7 +1772,7 @@ spriter.Data.prototype.getAnimKeys = function (entity_key)
 	{
 		return entity.animation_keys;
 	}
-	return null;
+	return [];
 }
 
 /**
@@ -2098,16 +2113,16 @@ spriter.Pose.prototype.strike = function ()
 			if (bone)
 			{
 				spriter.Space.combine(bone.world_space, object.local_space, object.world_space);
-				var folder = pose.data.folder_array[object.folder_index];
-				var file = folder.file_array[object.file_index];
-				var offset_x = (0.5 - object.pivot.x) * file.width;
-				var offset_y = (0.5 - object.pivot.y) * file.height;
-				spriter.Space.translate(object.world_space, offset_x, offset_y);
 			}
 			else
 			{
 				object.world_space.copy(object.local_space);
 			}
+			var folder = pose.data.folder_array[object.folder_index];
+			var file = folder.file_array[object.file_index];
+			var offset_x = (0.5 - object.pivot.x) * file.width;
+			var offset_y = (0.5 - object.pivot.y) * file.height;
+			spriter.Space.translate(object.world_space, offset_x, offset_y);
 		});
 	}
 }
