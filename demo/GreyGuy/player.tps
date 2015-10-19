@@ -4,7 +4,7 @@
         <key>fileFormatVersion</key>
         <int>3</int>
         <key>texturePackerVersion</key>
-        <string>3.9.2</string>
+        <string>3.9.4</string>
         <key>fileName</key>
         <string>C:/Users/iburns/Dropbox/sandbox.js/spriter.js/demo/GreyGuy/player.tps</string>
         <key>autoSDSettings</key>

@@ -115,10 +115,10 @@ main.start = function ()
 		atlas_data = null;
 
 		var file_path = file.path;
-		var file_scml_url = file_path + file.scml_url;
+		var file_scon_url = file_path + file.scon_url;
 		var file_atlas_url = (file.atlas_url)?(file_path + file.atlas_url):("");
 
-		loadText(file_scml_url, function (err, text)
+		loadText(file_scon_url, function (err, text)
 		{
 			if (err)
 			{
@@ -126,11 +126,11 @@ main.start = function ()
 				return;
 			}
 
-			var parser = new DOMParser();
-			var xml = parser.parseFromString(text, 'text/xml');
-			var json_text = xml2json(xml, '\t');
+			//var parser = new DOMParser();
+			//var xml = parser.parseFromString(text, 'text/xml');
+			//var json_text = xml2json(xml, '\t');
 
-			spriter_pose = new spriter.Pose(new spriter.Data().load(JSON.parse(json_text)));
+			spriter_pose = new spriter.Pose(new spriter.Data().load(JSON.parse(text)));
 
 			loadText(file_atlas_url, function (err, atlas_text)
 			{
@@ -200,21 +200,21 @@ main.start = function ()
 
 	var files = [];
 
-	var add_file = function (path, scml_url, atlas_url)
+	var add_file = function (path, scon_url, atlas_url)
 	{
 		var file = {};
 		file.path = path;
-		file.scml_url = scml_url;
+		file.scon_url = scon_url;
 		file.atlas_url = atlas_url || "";
 		files.push(file);
 	}
 
-	add_file("GreyGuy/", "player.scml", "player.tps.json");
-	add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/brawler/", "brawler.scml");
-	add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/imp/", "imp.scml");
-	add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/mage/", "mage.scml");
-	add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/orc/", "orc.scml");
-	add_file("https://raw.githubusercontent.com/Malhavok/Spriter2Unity/master/examples/Crabby/Spriter/", "Crabby.scml");
+	add_file("GreyGuy/", "player.scon", "player.tps.json");
+	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/brawler/", "brawler.scml");
+	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/imp/", "imp.scml");
+	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/mage/", "mage.scml");
+	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/orc/", "orc.scml");
+	//add_file("https://raw.githubusercontent.com/Malhavok/Spriter2Unity/master/examples/Crabby/Spriter/", "Crabby.scml");
 
 	var file_index = 0;
 	var entity_index = 0;
@@ -289,7 +289,7 @@ main.start = function ()
 
 			var entity_keys = spriter_pose.getEntityKeys();
 			var anim_keys = spriter_pose.getAnimKeys();
-			messages.innerHTML = "entity: " + entity_keys[entity_index] + ", anim: " + anim_keys[anim_index] + "<br>" + file.path + file.scml_url;
+			messages.innerHTML = "entity: " + entity_keys[entity_index] + ", anim: " + anim_keys[anim_index] + "<br>" + file.path + file.scon_url;
 		}
 
 		if (ctx)
