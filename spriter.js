@@ -869,11 +869,37 @@ spriter.Space.tween = function (a, b, tween, spin, out)
 /**
  * @constructor
  */
+spriter.Element = function ()
+{
+}
+
+/** @type {number} */
+spriter.Element.prototype.id = -1;
+/** @type {string} */
+spriter.Element.prototype.name = "";
+
+/**
+ * @return {spriter.Element} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.Element.prototype.load = function (json)
+{
+	this.id = spriter.loadInt(json, 'id', -1);
+	this.name = spriter.loadString(json, 'name', "");
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Element}
+ */
 spriter.File = function ()
 {
 	var file = this;
 	file.pivot = new spriter.Pivot();
 }
+
+goog.inherits(spriter.File, spriter.Element);
 
 /** @type {number} */
 spriter.File.prototype.id = -1;
@@ -893,8 +919,7 @@ spriter.File.prototype.pivot;
 spriter.File.prototype.load = function (json)
 {
 	var file = this;
-	file.id = spriter.loadInt(json, 'id', -1);
-	file.name = spriter.loadString(json, 'name', "");
+	goog.base(this, 'load', json);
 	file.width = spriter.loadInt(json, 'width', 0);
 	file.height = spriter.loadInt(json, 'height', 0);
 	file.pivot.x = spriter.loadFloat(json, 'pivot_x', 0);
@@ -904,15 +929,17 @@ spriter.File.prototype.load = function (json)
 
 /**
  * @constructor
+ * @extends {spriter.Element}
  */
 spriter.Folder = function ()
 {
 	var folder = this;
+	goog.base(this);
 	folder.file_array = [];
 }
 
-/** @type {number} */
-spriter.Folder.prototype.id = -1;
+goog.inherits(spriter.Folder, spriter.Element);
+
 /** @type {Array.<spriter.File>} */
 spriter.Folder.prototype.file_array;
 
@@ -923,12 +950,12 @@ spriter.Folder.prototype.file_array;
 spriter.Folder.prototype.load = function (json)
 {
 	var folder = this;
-	folder.id = spriter.loadInt(json, 'id', -1);
-	folder.file_array.length = 0;
+	goog.base(this, 'load', json);
+	folder.file_array = [];
 	json.file = spriter.makeArray(json.file);
-	json.file.forEach(function (file)
+	json.file.forEach(function (file_json)
 	{
-		folder.file_array.push(new spriter.File().load(file));
+		folder.file_array.push(new spriter.File().load(file_json));
 	});
 	return folder;
 }
@@ -944,8 +971,6 @@ spriter.Bone = function ()
 }
 
 /** @type {number} */
-spriter.Bone.prototype.id = -1;
-/** @type {number} */
 spriter.Bone.prototype.parent_index = -1;
 /** @type {spriter.Space} */
 spriter.Bone.prototype.local_space;
@@ -958,7 +983,6 @@ spriter.Bone.prototype.world_space;
  */
 spriter.Bone.prototype.load = function (json)
 {
-	this.id = spriter.loadInt(json, 'id', -1);
 	this.parent_index = spriter.loadInt(json, 'parent', -1);
 	this.local_space.load(json);
 	this.world_space.copy(this.local_space);
@@ -967,20 +991,10 @@ spriter.Bone.prototype.load = function (json)
 
 /**
  * @return {spriter.Bone}
- * @param {spriter.Bone=} other
- */
-spriter.Bone.prototype.clone = function (other)
-{
-	return (other || new spriter.Bone()).copy(this);
-}
-
-/**
- * @return {spriter.Bone}
  * @param {spriter.Bone} other
  */
 spriter.Bone.prototype.copy = function (other)
 {
-	this.id = other.id;
 	this.parent_index = other.parent_index;
 	this.local_space.copy(other.local_space);
 	this.world_space.copy(other.world_space);
@@ -1025,85 +1039,17 @@ spriter.Bone.flatten = function (bone, bones, out)
 
 /**
  * @constructor
+ * @param {string} type
  */
-spriter.BoneRef = function ()
+spriter.Object = function (type)
 {
+	this.type = type;
 }
 
-/** @type {number} */
-spriter.BoneRef.prototype.id = -1;
-/** @type {number} */
-spriter.BoneRef.prototype.parent_index = -1;
-/** @type {number} */
-spriter.BoneRef.prototype.timeline_index = -1;
-/** @type {number} */
-spriter.BoneRef.prototype.keyframe_index = -1;
-
-/**
- * @return {spriter.BoneRef} 
- * @param {Object.<string,?>} json 
- */
-spriter.BoneRef.prototype.load = function (json)
-{
-	this.id = spriter.loadInt(json, 'id', -1);
-	this.parent_index = spriter.loadInt(json, 'parent', -1);
-	this.timeline_index = spriter.loadInt(json, 'timeline', -1);
-	this.keyframe_index = spriter.loadInt(json, 'key', -1);
-	return this;
-}
-
-/**
- * @return {spriter.BoneRef}
- * @param {spriter.BoneRef=} other
- */
-spriter.BoneRef.prototype.clone = function (other)
-{
-	return (other || new spriter.BoneRef()).copy(this);
-}
-
-/**
- * @return {spriter.BoneRef}
- * @param {spriter.BoneRef} other
- */
-spriter.BoneRef.prototype.copy = function (other)
-{
-	this.id = other.id;
-	this.parent_index = other.parent_index;
-	this.timeline_index = other.timeline_index;
-	this.keyframe_index = other.keyframe_index;
-	return this;
-}
-
-/**
- * @constructor
- */
-spriter.Object = function ()
-{
-	this.local_space = new spriter.Space();
-	this.world_space = new spriter.Space();
-	this.pivot = new spriter.Pivot();
-}
-
-/** @type {number} */
-spriter.Object.prototype.id = -1;
-/** @type {number} */
-spriter.Object.prototype.parent_index = -1;
-/** @type {number} */
-spriter.Object.prototype.folder_index = -1;
-/** @type {number} */
-spriter.Object.prototype.file_index = -1;
-/** @type {spriter.Space} */
-spriter.Object.prototype.local_space;
-/** @type {spriter.Space} */
-spriter.Object.prototype.world_space;
-/** @type {boolean} */
-spriter.Object.prototype.default_pivot = false;
-/** @type {spriter.Pivot} */
-spriter.Object.prototype.pivot;
-/** @type {number} */
-spriter.Object.prototype.z_index = 0;
-/** @type {number} */
-spriter.Object.prototype.alpha = 1;
+/** @type {string} */
+spriter.Object.prototype.type = "unknown";
+/** @type {string} */
+spriter.Object.prototype.name = "";
 
 /**
  * @return {spriter.Object} 
@@ -1111,7 +1057,51 @@ spriter.Object.prototype.alpha = 1;
  */
 spriter.Object.prototype.load = function (json)
 {
-	this.id = spriter.loadInt(json, 'id', -1);
+	//var type = spriter.loadString(json, 'type', "sprite");
+	//if (this.type !== type) throw new Error();
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Object}
+ */
+spriter.SpriteObject = function ()
+{
+	goog.base(this, 'sprite');
+	this.local_space = new spriter.Space();
+	this.world_space = new spriter.Space();
+	this.pivot = new spriter.Pivot();
+}
+
+goog.inherits(spriter.SpriteObject, spriter.Object);
+
+/** @type {number} */
+spriter.SpriteObject.prototype.parent_index = -1;
+/** @type {number} */
+spriter.SpriteObject.prototype.folder_index = -1;
+/** @type {number} */
+spriter.SpriteObject.prototype.file_index = -1;
+/** @type {spriter.Space} */
+spriter.SpriteObject.prototype.local_space;
+/** @type {spriter.Space} */
+spriter.SpriteObject.prototype.world_space;
+/** @type {boolean} */
+spriter.SpriteObject.prototype.default_pivot = false;
+/** @type {spriter.Pivot} */
+spriter.SpriteObject.prototype.pivot;
+/** @type {number} */
+spriter.SpriteObject.prototype.z_index = 0;
+/** @type {number} */
+spriter.SpriteObject.prototype.alpha = 1.0;
+
+/**
+ * @return {spriter.SpriteObject} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.SpriteObject.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
 	this.parent_index = spriter.loadInt(json, 'parent', -1);
 	this.folder_index = spriter.loadInt(json, 'folder', -1);
 	this.file_index = spriter.loadInt(json, 'file', -1);
@@ -1128,26 +1118,16 @@ spriter.Object.prototype.load = function (json)
 		this.default_pivot = true;
 	}
 	this.z_index = spriter.loadInt(json, 'z_index', 0);
-	this.alpha = spriter.loadFloat(json, 'a', 1);
+	this.alpha = spriter.loadFloat(json, 'a', 1.0);
 	return this;
 }
 
 /**
- * @return {spriter.Object}
- * @param {spriter.Object=} other
+ * @return {spriter.SpriteObject}
+ * @param {spriter.SpriteObject} other
  */
-spriter.Object.prototype.clone = function (other)
+spriter.SpriteObject.prototype.copy = function (other)
 {
-	return (other || new spriter.Object()).copy(this);
-}
-
-/**
- * @return {spriter.Object}
- * @param {spriter.Object} other
- */
-spriter.Object.prototype.copy = function (other)
-{
-	this.id = other.id;
 	this.parent_index = other.parent_index;
 	this.folder_index = other.folder_index;
 	this.file_index = other.file_index;
@@ -1162,11 +1142,11 @@ spriter.Object.prototype.copy = function (other)
 
 /**
  * @return {void}
- * @param {spriter.Object} other
+ * @param {spriter.SpriteObject} other
  * @param {number} tween
  * @param {number} spin
  */
-spriter.Object.prototype.tween = function (other, tween, spin)
+spriter.SpriteObject.prototype.tween = function (other, tween, spin)
 {
 	spriter.Space.tween(this.local_space, other.local_space, tween, spin, this.local_space);
 	spriter.Vector.tween(this.pivot, other.pivot, tween, this.pivot);
@@ -1175,19 +1155,67 @@ spriter.Object.prototype.tween = function (other, tween, spin)
 
 /**
  * @constructor
+ * @extends {spriter.Element}
+ */
+spriter.Ref = function ()
+{
+	goog.base(this);
+}
+
+goog.inherits(spriter.Ref, spriter.Element);
+
+/** @type {number} */
+spriter.Ref.prototype.parent_index = -1;
+/** @type {number} */
+spriter.Ref.prototype.timeline_index = -1;
+/** @type {number} */
+spriter.Ref.prototype.keyframe_index = -1;
+
+/**
+ * @return {spriter.Ref} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.Ref.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	this.parent_index = spriter.loadInt(json, 'parent', -1);
+	this.timeline_index = spriter.loadInt(json, 'timeline', -1);
+	this.keyframe_index = spriter.loadInt(json, 'key', -1);
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Ref}
+ */
+spriter.BoneRef = function ()
+{
+	goog.base(this);
+}
+
+goog.inherits(spriter.BoneRef, spriter.Ref);
+
+/**
+ * @return {spriter.BoneRef} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.BoneRef.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Ref}
  */
 spriter.ObjectRef = function ()
 {
+	goog.base(this);
 }
 
-/** @type {number} */
-spriter.ObjectRef.prototype.id = -1;
-/** @type {number} */
-spriter.ObjectRef.prototype.parent_index = -1;
-/** @type {number} */
-spriter.ObjectRef.prototype.timeline_index = -1;
-/** @type {number} */
-spriter.ObjectRef.prototype.keyframe_index = -1;
+goog.inherits(spriter.ObjectRef, spriter.Ref);
+
 /** @type {number} */
 spriter.ObjectRef.prototype.z_index = 0;
 
@@ -1197,46 +1225,22 @@ spriter.ObjectRef.prototype.z_index = 0;
  */
 spriter.ObjectRef.prototype.load = function (json)
 {
-	this.id = spriter.loadInt(json ,'id', -1);
-	this.parent_index = spriter.loadInt(json, 'parent', -1);
-	this.timeline_index = spriter.loadInt(json, 'timeline', -1);
-	this.keyframe_index = spriter.loadInt(json, 'key', -1);
+	goog.base(this, 'load', json);
 	this.z_index = spriter.loadInt(json, 'z_index', 0);
 	return this;
 }
 
 /**
- * @return {spriter.ObjectRef}
- * @param {spriter.ObjectRef=} other
- */
-spriter.ObjectRef.prototype.clone = function (other)
-{
-	return (other || new spriter.ObjectRef()).copy(this);
-}
-
-/**
- * @return {spriter.ObjectRef}
- * @param {spriter.ObjectRef} other
- */
-spriter.ObjectRef.prototype.copy = function (other)
-{
-	this.id = other.id;
-	this.parent_index = other.parent_index;
-	this.timeline_index = other.timeline_index;
-	this.keyframe_index = other.keyframe_index;
-	this.z_index = other.z_index;
-	return this;
-}
-
-/**
  * @constructor
+ * @extends {spriter.Element}
  */
 spriter.Keyframe = function ()
 {
+	goog.base(this);
 }
 
-/** @type {number} */
-spriter.Keyframe.prototype.id = -1;
+goog.inherits(spriter.Keyframe, spriter.Element);
+
 /** @type {number} */
 spriter.Keyframe.prototype.time = 0;
 
@@ -1246,7 +1250,7 @@ spriter.Keyframe.prototype.time = 0;
  */
 spriter.Keyframe.prototype.load = function (json)
 {
-	this.id = spriter.loadInt(json, 'id', -1);
+	goog.base(this, 'load', json);
 	this.time = spriter.loadInt(json, 'time', 0);
 	return this;
 }
@@ -1295,10 +1299,10 @@ spriter.MainlineKeyframe = function ()
 
 goog.inherits(spriter.MainlineKeyframe, spriter.Keyframe);
 
-/** @type {Array.<spriter.Bone|spriter.BoneRef>} */
-spriter.MainlineKeyframe.prototype.bone_array = null;
-/** @type {Array.<spriter.Object|spriter.ObjectRef>} */
-spriter.MainlineKeyframe.prototype.object_array = null;
+/** @type {Array.<spriter.BoneRef>} */
+spriter.MainlineKeyframe.prototype.bone_ref_array;
+/** @type {Array.<spriter.ObjectRef>} */
+spriter.MainlineKeyframe.prototype.object_ref_array;
 
 /**
  * @return {spriter.MainlineKeyframe} 
@@ -1308,41 +1312,23 @@ spriter.MainlineKeyframe.prototype.load = function (json)
 {
 	var mainline_keyframe = this;
 
-	goog.base(this, 'load', json)
+	goog.base(this, 'load', json);
 
-	// combine bones and bone_refs into one array and sort by id
-	mainline_keyframe.bone_array = [];
-
-	json.bone = spriter.makeArray(json.bone);
-	json.bone.forEach(function (bone_json)
-	{
-		mainline_keyframe.bone_array.push(new spriter.Bone().load(bone_json));
-	});
-	
+	mainline_keyframe.bone_ref_array = [];
 	json.bone_ref = spriter.makeArray(json.bone_ref);
 	json.bone_ref.forEach(function (bone_ref_json)
 	{
-		mainline_keyframe.bone_array.push(new spriter.BoneRef().load(bone_ref_json));
+		mainline_keyframe.bone_ref_array.push(new spriter.BoneRef().load(bone_ref_json));
 	});
-	
-	mainline_keyframe.bone_array = mainline_keyframe.bone_array.sort(function (a, b) { return a.id - b.id; });
+	mainline_keyframe.bone_ref_array = mainline_keyframe.bone_ref_array.sort(function (a, b) { return a.id - b.id; });
 
-	// combine objects and object_refs into one array and sort by id
-	mainline_keyframe.object_array = [];
-	
-	json.object = spriter.makeArray(json.object);
-	json.object.forEach(function (object_json)
-	{
-		mainline_keyframe.object_array.push(new spriter.Object().load(object_json));
-	});
-	
+	mainline_keyframe.object_ref_array = [];
 	json.object_ref = spriter.makeArray(json.object_ref);
 	json.object_ref.forEach(function (object_ref_json)
 	{
-		mainline_keyframe.object_array.push(new spriter.ObjectRef().load(object_ref_json));
+		mainline_keyframe.object_ref_array.push(new spriter.ObjectRef().load(object_ref_json));
 	});
-	
-	mainline_keyframe.object_array = mainline_keyframe.object_array.sort(function (a, b) { return a.id - b.id; });
+	mainline_keyframe.object_ref_array = mainline_keyframe.object_ref_array.sort(function (a, b) { return a.id - b.id; });
 
 	return mainline_keyframe;
 }
@@ -1355,7 +1341,7 @@ spriter.Mainline = function ()
 }
 
 /** @type {Array.<spriter.MainlineKeyframe>} */
-spriter.Mainline.prototype.keyframe_array = null;
+spriter.Mainline.prototype.keyframe_array;
 
 /**
  * @return {spriter.Mainline} 
@@ -1364,6 +1350,7 @@ spriter.Mainline.prototype.keyframe_array = null;
 spriter.Mainline.prototype.load = function (json)
 {
 	var mainline = this;
+
 	mainline.keyframe_array = [];
 	json.key = spriter.makeArray(json.key);
 	json.key.forEach(function (key_json)
@@ -1371,6 +1358,7 @@ spriter.Mainline.prototype.load = function (json)
 		mainline.keyframe_array.push(new spriter.MainlineKeyframe().load(key_json));
 	});
 	mainline.keyframe_array = mainline.keyframe_array.sort(spriter.Keyframe.compare);
+
 	return mainline;
 }
 
@@ -1388,7 +1376,7 @@ spriter.TimelineKeyframe = function (type)
 goog.inherits(spriter.TimelineKeyframe, spriter.Keyframe);
 
 /** @type {string} */
-spriter.TimelineKeyframe.prototype.type = "";
+spriter.TimelineKeyframe.prototype.type = "unknown";
 /** @type {number} */
 spriter.TimelineKeyframe.prototype.spin = 1; // 1: counter-clockwise, -1: clockwise
 /** @type {number} */
@@ -1404,8 +1392,9 @@ spriter.TimelineKeyframe.prototype.c2 = 0;
  */
 spriter.TimelineKeyframe.prototype.load = function (json)
 {
-	this.id = spriter.loadInt(json, 'id', -1);
-	this.time = spriter.loadInt(json, 'time', 0);
+	goog.base(this, 'load', json)
+	//var type = spriter.loadString(json, 'type', "sprite");
+	//if (this.type !== type) throw new Error();
 	this.spin = spriter.loadInt(json, 'spin', 1);
 	this.curve = spriter.loadInt(json, 'curve_type', 1);
 	this.c1 = spriter.loadInt(json, 'c1', 0);
@@ -1437,7 +1426,7 @@ spriter.BoneTimelineKeyframe = function ()
 goog.inherits(spriter.BoneTimelineKeyframe, spriter.TimelineKeyframe);
 
 /** @type {spriter.Bone} */
-spriter.BoneTimelineKeyframe.prototype.bone = null;
+spriter.BoneTimelineKeyframe.prototype.bone;
 
 /**
  * @return {spriter.TimelineKeyframe} 
@@ -1454,45 +1443,44 @@ spriter.BoneTimelineKeyframe.prototype.load = function (json)
  * @constructor
  * @extends {spriter.TimelineKeyframe}
  */
-spriter.ObjectTimelineKeyframe = function ()
+spriter.SpriteTimelineKeyframe = function ()
 {
-	goog.base(this, 'object');
+	goog.base(this, 'sprite');
 }
 
-goog.inherits(spriter.ObjectTimelineKeyframe, spriter.TimelineKeyframe);
+goog.inherits(spriter.SpriteTimelineKeyframe, spriter.TimelineKeyframe);
 
-/** @type {spriter.Object} */
-spriter.ObjectTimelineKeyframe.prototype.object = null;
+/** @type {spriter.SpriteObject} */
+spriter.SpriteTimelineKeyframe.prototype.sprite;
 
 /**
  * @return {spriter.TimelineKeyframe} 
  * @param {Object.<string,?>} json 
  */
-spriter.ObjectTimelineKeyframe.prototype.load = function (json)
+spriter.SpriteTimelineKeyframe.prototype.load = function (json)
 {
 	goog.base(this, 'load', json);
-	this.object = new spriter.Object().load(json.object || {});
+	this.sprite = new spriter.SpriteObject().load(json.object || {});
 	return this;
 }
 
 /**
  * @constructor
+ * @extends {spriter.Element}
  */
 spriter.Timeline = function ()
 {
+	goog.base(this);
 }
 
-/** @type {number} */
-spriter.Timeline.prototype.id = -1;
-/** @type {string} */
-spriter.Timeline.prototype.name = "";
-/** @type {string} */
-spriter.Timeline.prototype.type = "";
-/** @type {number} */
-spriter.Timeline.prototype.index = -1;
+goog.inherits(spriter.Timeline, spriter.Element);
 
+/** @type {string} */
+spriter.Timeline.prototype.type = "sprite";
+/** @type {number} */
+spriter.Timeline.prototype.object_index = -1;
 /** @type {Array.<spriter.TimelineKeyframe>} */
-spriter.Timeline.prototype.keyframe_array = null;
+spriter.Timeline.prototype.keyframe_array;
 
 /**
  * @return {spriter.Timeline} 
@@ -1502,10 +1490,10 @@ spriter.Timeline.prototype.load = function (json)
 {
 	var timeline = this;
 
-	timeline.id = spriter.loadInt(json, 'id', -1);
-	timeline.name = spriter.loadString(json, 'name', "");
+	goog.base(this, 'load', json);
+
 	timeline.type = spriter.loadString(json, 'object_type', "sprite");
-	timeline.index = spriter.loadInt(json, 'obj', -1);
+	timeline.object_index = spriter.loadInt(json, 'obj', -1);
 
 	timeline.keyframe_array = [];
 	json.key = spriter.makeArray(json.key);
@@ -1514,7 +1502,7 @@ spriter.Timeline.prototype.load = function (json)
 	case 'sprite':
 		json.key.forEach(function (key_json)
 		{
-			timeline.keyframe_array.push(new spriter.ObjectTimelineKeyframe().load(key_json));
+			timeline.keyframe_array.push(new spriter.SpriteTimelineKeyframe().load(key_json));
 		});
 		break;
 	case 'bone':
@@ -1529,7 +1517,7 @@ spriter.Timeline.prototype.load = function (json)
 	case 'entity':
 	case 'variable':
 	default:
-		console.log("TODO: spriter.Timeline::load", timeline.type);
+		console.log("TODO: spriter.Timeline::load", timeline.type, json.key);
 		break;
 	}
 	timeline.keyframe_array = timeline.keyframe_array.sort(spriter.Keyframe.compare);
@@ -1539,15 +1527,15 @@ spriter.Timeline.prototype.load = function (json)
 
 /**
  * @constructor
+ * @extends {spriter.Element}
  */
 spriter.Animation = function ()
 {
+	goog.base(this);
 }
 
-/** @type {number} */
-spriter.Animation.prototype.id = -1;
-/** @type {string} */
-spriter.Animation.prototype.name = "";
+goog.inherits(spriter.Animation, spriter.Element);
+
 /** @type {number} */
 spriter.Animation.prototype.length = 0;
 /** @type {string} */
@@ -1555,9 +1543,9 @@ spriter.Animation.prototype.looping = "true"; // "true", "false" or "ping_pong"
 /** @type {number} */
 spriter.Animation.prototype.loop_to = 0;
 /** @type {spriter.Mainline} */
-spriter.Animation.prototype.mainline = null;
+spriter.Animation.prototype.mainline;
 /** @type {Array.<spriter.Timeline>} */
-spriter.Animation.prototype.timeline_array = null;
+spriter.Animation.prototype.timeline_array;
 /** @type {number} */
 spriter.Animation.prototype.min_time = 0;
 /** @type {number} */
@@ -1571,14 +1559,13 @@ spriter.Animation.prototype.load = function (json)
 {
 	var anim = this;
 
-	anim.id = spriter.loadInt(json, 'id', -1);
-	anim.name = spriter.loadString(json, 'name', "");
+	goog.base(this, 'load', json);
+
 	anim.length = spriter.loadInt(json, 'length', 0);
 	anim.looping = spriter.loadString(json, 'looping', "true");
 	anim.loop_to = spriter.loadInt(json, 'loop_to', 0);
 
-	json.mainline = json.mainline || {};
-	anim.mainline = new spriter.Mainline().load(json.mainline);
+	anim.mainline = new spriter.Mainline().load(json.mainline || {});
 
 	anim.timeline_array = [];
 	json.timeline = spriter.makeArray(json.timeline);
@@ -1595,19 +1582,19 @@ spriter.Animation.prototype.load = function (json)
 
 /**
  * @constructor
+ * @extends {spriter.Element}
  */
 spriter.Entity = function ()
 {
+	goog.base(this);
 }
 
-/** @type {number} */
-spriter.Entity.prototype.id = -1;
-/** @type {string} */
-spriter.Entity.prototype.name = "";
+goog.inherits(spriter.Entity, spriter.Element);
+
 /** @type {Object.<string,spriter.Animation>} */
-spriter.Entity.prototype.animation_map = null;
+spriter.Entity.prototype.animation_map;
 /** @type {Array.<string>} */
-spriter.Entity.prototype.animation_keys = null;
+spriter.Entity.prototype.animation_keys;
 
 /**
  * @return {spriter.Entity} 
@@ -1617,8 +1604,7 @@ spriter.Entity.prototype.load = function (json)
 {
 	var entity = this;
 
-	entity.id = spriter.loadInt(json, 'id', -1);
-	entity.name = spriter.loadString(json, 'name', "");
+	goog.base(this, 'load', json);
 
 	entity.animation_map = {};
 	entity.animation_keys = [];
@@ -1639,6 +1625,7 @@ spriter.Entity.prototype.load = function (json)
 spriter.Data = function ()
 {
 	var data = this;
+
 	data.folder_array = [];
 	data.entity_map = {};
 	data.entity_keys = [];
@@ -1668,9 +1655,9 @@ spriter.Data.prototype.load = function (json)
 
 	data.folder_array = [];
 	json.folder = spriter.makeArray(json.folder);
-	json.folder.forEach(function (folder)
+	json.folder.forEach(function (folder_json)
 	{
-		data.folder_array.push(new spriter.Folder().load(folder));
+		data.folder_array.push(new spriter.Folder().load(folder_json));
 	});
 
 	data.entity_map = {};
@@ -1693,34 +1680,21 @@ spriter.Data.prototype.load = function (json)
 		{
 			var animation = entity.animation_map[animation_key];
 
-			animation.mainline.keyframe_array.forEach(function (mainline_keyframe)
-			{
-				mainline_keyframe.object_array.forEach(function (object)
-				{
-					if (object instanceof spriter.Object)
-					{
-						if (object.default_pivot)
-						{
-							var folder = data.folder_array[object.folder_index];
-							var file = folder.file_array[object.file_index];
-							object.pivot.copy(file.pivot);
-						}
-					}
-				});
-			});
-
 			animation.timeline_array.forEach(function (timeline)
 			{
 				timeline.keyframe_array.forEach(function (timeline_keyframe)
 				{
-					if (timeline_keyframe instanceof spriter.ObjectTimelineKeyframe)
+					if (timeline_keyframe instanceof spriter.SpriteTimelineKeyframe)
 					{
-						var object = timeline_keyframe.object;
-						if (object.default_pivot)
+						var sprite = timeline_keyframe.sprite;
+						if (sprite.default_pivot)
 						{
-							var folder = data.folder_array[object.folder_index];
-							var file = folder.file_array[object.file_index];
-							object.pivot.copy(file.pivot);
+							var folder = data.folder_array[sprite.folder_index];
+							var file = folder && folder.file_array[sprite.file_index];
+							if (file)
+							{
+								sprite.pivot.copy(file.pivot);
+							}
 						}
 					}
 				});
@@ -1861,6 +1835,8 @@ spriter.Pose.prototype.setEntity = function (entity_key)
 		this.anim_key = "";
 		this.time = 0;
 		this.dirty = true;
+		this.bone_array = [];
+		this.object_array = [];
 	}
 }
 
@@ -1970,7 +1946,9 @@ spriter.Pose.prototype.setTime = function (time)
  */
 spriter.Pose.prototype.update = function (elapsed_time)
 {
-	this.setTime(this.getTime() + elapsed_time);
+	var pose = this;
+	pose.elapsed_time += elapsed_time;
+	pose.dirty = true;
 }
 
 /**
@@ -1982,12 +1960,26 @@ spriter.Pose.prototype.strike = function ()
 	if (!pose.dirty) { return; }
 	pose.dirty = false;
 
+	var entity = pose.curEntity();
+
 	var anim = pose.curAnim();
 
-	var time = pose.time;
+	var prev_time = pose.time;
 	var elapsed_time = pose.elapsed_time;
 
-	pose.elapsed_time = 0; // reset elapsed time for next update
+	pose.time = pose.time + pose.elapsed_time; // accumulate elapsed time
+	pose.elapsed_time = 0; // reset elapsed time for next strike
+
+	var wrapped_min = false;
+	var wrapped_max = false;
+	if (anim)
+	{
+		wrapped_min = (elapsed_time < 0) && (pose.time <= anim.min_time);
+		wrapped_max = (elapsed_time > 0) && (pose.time >= anim.max_time);
+		pose.time = spriter.wrap(pose.time, anim.min_time, anim.max_time);
+	}
+
+	var time = pose.time;
 
 	if (anim)
 	{
@@ -1997,54 +1989,31 @@ spriter.Pose.prototype.strike = function ()
 
 		var timeline_array = anim.timeline_array;
 
-		var data_bone_array = mainline_keyframe.bone_array;
+		var data_bone_array = mainline_keyframe.bone_ref_array;
 		var pose_bone_array = pose.bone_array;
 
 		data_bone_array.forEach(function (data_bone, bone_index)
 		{
+			var timeline_index = data_bone.timeline_index;
+			var timeline = timeline_array[timeline_index];
+			var timeline_keyframe_array = timeline.keyframe_array;
+			var keyframe_index1 = data_bone.keyframe_index;
+			var keyframe_index2 = (keyframe_index1 + 1) % timeline_keyframe_array.length;
+			var timeline_keyframe1 = timeline_keyframe_array[keyframe_index1];
+			var timeline_keyframe2 = timeline_keyframe_array[keyframe_index2];
+			var time1 = timeline_keyframe1.time;
+			var time2 = timeline_keyframe2.time;
+			if (time2 < time1) { time2 = anim.length; }
+			var tween = timeline_keyframe1.evaluateCurve(time, time1, time2);
 			var pose_bone = pose_bone_array[bone_index] = (pose_bone_array[bone_index] || new spriter.Bone());
-
-			if (data_bone instanceof spriter.BoneRef)
-			{
-				// bone is a spriter.BoneRef, dereference
-				var timeline_index = data_bone.timeline_index;
-				var keyframe_index = data_bone.keyframe_index;
-				var timeline = timeline_array[timeline_index];
-				var timeline_keyframe_array = timeline.keyframe_array;
-				var timeline_keyframe = timeline_keyframe_array[keyframe_index];
-
-				var time1 = timeline_keyframe.time;
-				var bone1 = timeline_keyframe.bone;
-				pose_bone.copy(bone1);
-				pose_bone.parent_index = data_bone.parent_index; // set parent from bone_ref
-
-				// see if there's something to tween with
-				var keyframe_index2 = (keyframe_index + 1) % timeline_keyframe_array.length;
-				if (keyframe_index !== keyframe_index2)
-				{
-					var timeline_keyframe2 = timeline_keyframe_array[keyframe_index2];
-					var time2 = timeline_keyframe2.time;
-					if (time2 < time1) { time2 = anim.length; }
-					var bone2 = timeline_keyframe2.bone;
-
-					var tween = timeline_keyframe.evaluateCurve(time, time1, time2);
-					pose_bone.tween(bone2, tween, timeline_keyframe.spin);
-				}
-			}
-			else if (data_bone instanceof spriter.Bone)
-			{
-				// bone is a spriter.Bone, copy
-				pose_bone.copy(data_bone);
-			}
-			else
-			{
-				throw new Error();
-			}
+			pose_bone.copy(timeline_keyframe1.bone).tween(timeline_keyframe2.bone, tween, timeline_keyframe1.spin);
+			pose_bone.parent_index = data_bone.parent_index; // set parent from bone_ref
 		});
 
 		// clamp output bone array
 		pose_bone_array.length = data_bone_array.length;
 
+		// compute bone world space
 		pose_bone_array.forEach(function (bone)
 		{
 			var parent_bone = pose_bone_array[bone.parent_index];
@@ -2058,49 +2027,40 @@ spriter.Pose.prototype.strike = function ()
 			}
 		});
 
-		var data_object_array = mainline_keyframe.object_array;
+		var data_object_array = mainline_keyframe.object_ref_array;
 		var pose_object_array = pose.object_array;
 
 		data_object_array.forEach(function (data_object, object_index)
 		{
-			var pose_object = pose_object_array[object_index] = (pose_object_array[object_index] || new spriter.Object());
+			var timeline_index = data_object.timeline_index;
+			var timeline = timeline_array[timeline_index];
+			var timeline_keyframe_array = timeline.keyframe_array;
+			var keyframe_index1 = data_object.keyframe_index;
+			var keyframe_index2 = (keyframe_index1 + 1) % timeline_keyframe_array.length;
+			var timeline_keyframe1 = timeline_keyframe_array[keyframe_index1];
+			var timeline_keyframe2 = timeline_keyframe_array[keyframe_index2];
+			var time1 = timeline_keyframe1.time;
+			var time2 = timeline_keyframe2.time;
+			if (time2 < time1) { time2 = anim.length; }
+			var tween = timeline_keyframe1.evaluateCurve(time, time1, time2);
 
-			if (data_object instanceof spriter.ObjectRef)
+			switch (timeline.type)
 			{
-				// object is a spriter.ObjectRef, dereference
-				var timeline_index = data_object.timeline_index;
-				var keyframe_index = data_object.keyframe_index;
-				var timeline = timeline_array[timeline_index];
-				var timeline_keyframe_array = timeline.keyframe_array;
-				var timeline_keyframe = timeline_keyframe_array[keyframe_index];
-
-				var time1 = timeline_keyframe.time;
-				var object1 = timeline_keyframe.object;
-
-				pose_object.copy(object1);
-				pose_object.parent_index = data_object.parent_index; // set parent from object_ref
-
-				// see if there's something to tween with
-				var keyframe_index2 = (keyframe_index + 1) % timeline_keyframe_array.length;
-				if (keyframe_index !== keyframe_index2)
-				{
-					var timeline_keyframe2 = timeline_keyframe_array[keyframe_index2];
-					var time2 = timeline_keyframe2.time;
-					if (time2 < time1) { time2 = anim.length; }
-					var object2 = timeline_keyframe2.object;
-
-					var tween = timeline_keyframe.evaluateCurve(time, time1, time2);
-					pose_object.tween(object2, tween, timeline_keyframe.spin);
-				}
-			}
-			else if (data_object instanceof spriter.Object)
-			{
-				// object is a spriter.Object, copy
-				pose_object.copy(data_object);
-			}
-			else
-			{
-				throw new Error();
+			case 'sprite':
+				var pose_sprite = pose_object_array[object_index] = (pose_object_array[object_index] || new spriter.SpriteObject());
+				pose_sprite.copy(timeline_keyframe1.sprite).tween(timeline_keyframe2.sprite, tween, timeline_keyframe1.spin);
+				pose_sprite.name = timeline.name; // set name from timeline
+				pose_sprite.parent_index = data_object.parent_index; // set parent from object_ref
+				break;
+			case 'bone':
+			case 'box':
+			case 'point':
+			case 'sound':
+			case 'entity':
+			case 'variable':
+				break;
+			default:
+				throw new Error(timeline.type);
 			}
 		});
 
@@ -2109,20 +2069,37 @@ spriter.Pose.prototype.strike = function ()
 
 		pose_object_array.forEach(function (object)
 		{
-			var bone = pose_bone_array[object.parent_index];
-			if (bone)
+			switch (object.type)
 			{
-				spriter.Space.combine(bone.world_space, object.local_space, object.world_space);
+			case 'sprite':
+				var bone = pose_bone_array[object.parent_index];
+				if (bone)
+				{
+					spriter.Space.combine(bone.world_space, object.local_space, object.world_space);
+				}
+				else
+				{
+					object.world_space.copy(object.local_space);
+				}
+				var folder = pose.data.folder_array[object.folder_index];
+				var file = folder && folder.file_array[object.file_index];
+				if (file)
+				{
+					var offset_x = (0.5 - object.pivot.x) * file.width;
+					var offset_y = (0.5 - object.pivot.y) * file.height;
+					spriter.Space.translate(object.world_space, offset_x, offset_y);
+				}
+				break;
+			case 'bone':
+			case 'box':
+			case 'point':
+			case 'sound':
+			case 'entity':
+			case 'variable':
+				break;
+			default:
+				throw new Error(object.type);
 			}
-			else
-			{
-				object.world_space.copy(object.local_space);
-			}
-			var folder = pose.data.folder_array[object.folder_index];
-			var file = folder.file_array[object.file_index];
-			var offset_x = (0.5 - object.pivot.x) * file.width;
-			var offset_y = (0.5 - object.pivot.y) * file.height;
-			spriter.Space.translate(object.world_space, offset_x, offset_y);
 		});
 	}
 }
