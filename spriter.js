@@ -1551,6 +1551,77 @@ spriter.SoundObject.prototype.tween = function (other, tween, spin)
 
 /**
  * @constructor
+ * @extends {spriter.Object}
+ */
+spriter.EntityObject = function ()
+{
+	goog.base(this, 'entity');
+	this.local_space = new spriter.Space();
+	this.world_space = new spriter.Space();
+}
+
+goog.inherits(spriter.EntityObject, spriter.Object);
+
+/** @type {number} */
+spriter.EntityObject.prototype.parent_index = -1;
+/** @type {spriter.Space} */
+spriter.EntityObject.prototype.local_space;
+/** @type {spriter.Space} */
+spriter.EntityObject.prototype.world_space;
+/** @type {number} */
+spriter.EntityObject.prototype.entity_index = -1;
+/** @type {number} */
+spriter.EntityObject.prototype.animation_index = -1;
+/** @type {number} */
+spriter.EntityObject.prototype.animation_time = 0.0;
+/** @type {spriter.Pose} */
+spriter.EntityObject.prototype.pose;
+
+/**
+ * @return {spriter.EntityObject} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.EntityObject.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	this.parent_index = spriter.loadInt(json, 'parent', -1);
+	this.local_space.load(json);
+	this.world_space.copy(this.local_space);
+	this.entity_index = spriter.loadInt(json, 'entity', -1);
+	this.animation_index = spriter.loadInt(json, 'animation', -1);
+	this.animation_time = spriter.loadFloat(json, 't', 0.0);
+	return this;
+}
+
+/**
+ * @return {spriter.EntityObject}
+ * @param {spriter.EntityObject} other
+ */
+spriter.EntityObject.prototype.copy = function (other)
+{
+	this.parent_index = other.parent_index;
+	this.local_space.copy(other.local_space);
+	this.world_space.copy(other.world_space);
+	this.entity_index = other.entity_index;
+	this.animation_index = other.animation_index;
+	this.animation_time = other.animation_time;
+	return this;
+}
+
+/**
+ * @return {void}
+ * @param {spriter.EntityObject} other
+ * @param {number} tween
+ * @param {number} spin
+ */
+spriter.EntityObject.prototype.tween = function (other, tween, spin)
+{
+	spriter.Space.tween(this.local_space, other.local_space, tween, spin, this.local_space);
+	this.animation_time = spriter.tween(this.animation_time, other.animation_time, tween);
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Ref = function ()
@@ -1967,6 +2038,31 @@ spriter.SoundTimelineKeyframe.prototype.load = function (json)
 
 /**
  * @constructor
+ * @extends {spriter.TimelineKeyframe}
+ */
+spriter.EntityTimelineKeyframe = function ()
+{
+	goog.base(this, 'entity');
+}
+
+goog.inherits(spriter.EntityTimelineKeyframe, spriter.TimelineKeyframe);
+
+/** @type {spriter.EntityObject} */
+spriter.EntityTimelineKeyframe.prototype.entity;
+
+/**
+ * @return {spriter.TimelineKeyframe} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.EntityTimelineKeyframe.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	this.entity = new spriter.EntityObject().load(json.object || {});
+	return this;
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Timeline = function ()
@@ -2031,6 +2127,11 @@ spriter.Timeline.prototype.load = function (json)
 		});
 		break;
 	case 'entity':
+		json.key.forEach(function (key_json)
+		{
+			timeline.keyframe_array.push(new spriter.EntityTimelineKeyframe().load(key_json));
+		});
+		break;
 	case 'variable':
 	default:
 		console.log("TODO: spriter.Timeline::load", timeline.type, json.key);
@@ -2953,6 +3054,11 @@ spriter.Pose.prototype.strike = function ()
 				pose_sound.name = timeline.name;
 				break;
 			case 'entity':
+				var pose_entity = pose_object_array[object_index] = (pose_object_array[object_index] || new spriter.EntityObject());
+				pose_entity.copy(timeline_keyframe1.entity).tween(timeline_keyframe2.entity, tween, timeline_keyframe1.spin);
+				pose_entity.name = timeline.name;
+				pose_entity.parent_index = data_object.parent_index; // set parent from object_ref
+				break;
 			case 'variable':
 				break;
 			default:
@@ -3029,6 +3135,39 @@ spriter.Pose.prototype.strike = function ()
 			case 'sound':
 				break;
 			case 'entity':
+				var bone = pose_bone_array[object.parent_index];
+				if (bone)
+				{
+					spriter.Space.combine(bone.world_space, object.local_space, object.world_space);
+				}
+				else
+				{
+					object.world_space.copy(object.local_space);
+				}
+				var sub_pose = object.pose = object.pose || new spriter.Pose(pose.data);
+				var sub_entity_key = sub_pose.data.entity_keys[object.entity_index];
+				if (sub_entity_key !== sub_pose.getEntity())
+				{
+					sub_pose.setEntity(sub_entity_key);
+				}
+				var sub_entity = sub_pose.curEntity();
+				var sub_anim_key = sub_entity.animation_keys[object.animation_index];
+				if (sub_anim_key !== sub_pose.getAnim())
+				{
+					sub_pose.setAnim(sub_anim_key);
+					var anim_length = sub_pose.curAnimLength();
+					var sub_time = object.animation_time * anim_length;
+					sub_pose.setTime(sub_time);
+				}
+				else
+				{
+					var anim_length = sub_pose.curAnimLength();
+					var sub_time = object.animation_time * anim_length;
+					var sub_dt = sub_time - sub_pose.getTime();
+					sub_pose.update(sub_dt);
+				}
+				sub_pose.strike();
+				break;
 			case 'variable':
 				break;
 			default:

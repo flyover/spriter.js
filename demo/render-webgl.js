@@ -12,6 +12,7 @@ renderWebGL = function (gl)
 	render.gl_textures = {};
 	render.gl_projection = mat3x3Identity(new Float32Array(9));
 	render.gl_modelview = mat3x3Identity(new Float32Array(9));
+	render.gl_modelview_stack = [];
 	render.gl_tex_matrix = mat3x3Identity(new Float32Array(9));
 	render.gl_color = vec4Identity(new Float32Array(4));
 	var gl_mesh_shader_vs_src =
@@ -172,6 +173,7 @@ renderWebGL.prototype.drawPose = function (spriter_pose, atlas_data)
 
 	var gl_projection = render.gl_projection;
 	var gl_modelview = render.gl_modelview;
+	var gl_modelview_stack = render.gl_modelview_stack;
 	var gl_tex_matrix = render.gl_tex_matrix;
 	var gl_color = render.gl_color;
 
@@ -198,7 +200,7 @@ renderWebGL.prototype.drawPose = function (spriter_pose, atlas_data)
 			var gl_texture = gl_textures[image_key];
 			if (gl_texture)
 			{
-				mat3x3Identity(gl_modelview);
+				gl_modelview_stack.push(mat3x3Copy(new Float32Array(9), gl_modelview));
 				mat3x3ApplySpace(gl_modelview, object.world_space);
 				mat3x3Scale(gl_modelview, file.width/2, file.height/2);
 				mat3x3ApplyAtlasSitePosition(gl_modelview, site);
@@ -219,7 +221,14 @@ renderWebGL.prototype.drawPose = function (spriter_pose, atlas_data)
 				gl.drawArrays(gl.TRIANGLE_FAN, 0, gl_vertex.position.count);
 				glResetAttribute(gl, gl_shader, 'aVertexPosition', gl_vertex.position);
 				glResetAttribute(gl, gl_shader, 'aVertexTexCoord', gl_vertex.texcoord);
+				mat3x3Copy(gl_modelview, gl_modelview_stack.pop());
 			}
+			break;
+		case 'entity':
+			gl_modelview_stack.push(mat3x3Copy(new Float32Array(9), gl_modelview));
+			mat3x3ApplySpace(gl_modelview, object.world_space);
+			render.drawPose(object.pose, atlas_data); // recursive
+			mat3x3Copy(gl_modelview, gl_modelview_stack.pop());
 			break;
 		}
 	});

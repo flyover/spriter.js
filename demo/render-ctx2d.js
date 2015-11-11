@@ -86,6 +86,12 @@ renderCtx2D.prototype.drawPose = function (spriter_pose, atlas_data)
 				ctx.restore();
 			}
 			break;
+		case 'entity':
+			ctx.save();
+			ctxApplySpace(ctx, object.world_space);
+			render.drawPose(object.pose, atlas_data); // recursive
+			ctx.restore();
+			break;
 		}
 	});
 }
@@ -186,6 +192,13 @@ renderCtx2D.prototype.drawDebugPose = function (spriter_pose, atlas_data)
 			ctx.restore();
 			break;
 		case 'sound':
+			break;
+		case 'entity':
+			ctx.save();
+			ctxApplySpace(ctx, object.world_space);
+			ctxDrawPoint(ctx);
+			render.drawDebugPose(object.pose, atlas_data); // recursive
+			ctx.restore();
 			break;
 		}
 	});
