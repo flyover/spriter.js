@@ -227,6 +227,7 @@ spriter.interpolateQuadratic = function (a, b, c, t)
 {
 	return spriter.interpolateLinear(spriter.interpolateLinear(a,b,t),spriter.interpolateLinear(b,c,t),t);
 }
+
 /**
  * @return {number}
  * @param {number} a
@@ -238,6 +239,117 @@ spriter.interpolateQuadratic = function (a, b, c, t)
 spriter.interpolateCubic = function (a, b, c, d, t)
 {
 	return spriter.interpolateLinear(spriter.interpolateQuadratic(a,b,c,t),spriter.interpolateQuadratic(b,c,d,t),t);
+}
+
+/**
+ * @return {number}
+ * @param {number} a
+ * @param {number} b
+ * @param {number} c
+ * @param {number} d
+ * @param {number} e
+ * @param {number} t
+ */
+spriter.interpolateQuartic = function (a, b, c, d, e, t)
+{
+	return spriter.interpolateLinear(spriter.interpolateCubic(a,b,c,d,t),spriter.interpolateCubic(b,c,d,e,t),t);
+}
+
+/**
+ * @return {number}
+ * @param {number} a
+ * @param {number} b
+ * @param {number} c
+ * @param {number} d
+ * @param {number} e
+ * @param {number} f
+ * @param {number} t
+ */
+spriter.interpolateQuintic = function (a, b, c, d, e, f, t)
+{
+	return spriter.interpolateLinear(spriter.interpolateQuartic(a,b,c,d,e,t),spriter.interpolateQuartic(b,c,d,e,f,t),t);
+}
+
+/**
+ * @return {number}
+ * @param {number} x1
+ * @param {number} y1
+ * @param {number} x2
+ * @param {number} y2
+ * @param {number} t
+ */
+spriter.interpolateBezier = function (x1, y1, x2, y2, t)
+{
+	function SampleCurve(a, b, c, t)
+	{
+		return ((a * t + b) * t + c) * t;
+	}
+
+	function SampleCurveDerivativeX(ax, bx, cx, t)
+	{
+		return (3.0 * ax * t + 2.0 * bx) * t + cx;
+	}
+
+	function SolveEpsilon(duration)
+	{
+		return 1.0 / (200.0 * duration);
+	}
+
+	function Solve(ax, bx, cx, ay, by, cy, x, epsilon)
+	{
+		return SampleCurve(ay, by, cy, SolveCurveX(ax, bx, cx, x, epsilon));
+	}
+
+	function SolveCurveX(ax, bx, cx, x, epsilon)
+	{
+		var t0;
+		var t1;
+		var t2;
+		var x2;
+		var d2;
+		var i;
+
+		// First try a few iterations of Newton's method -- normally very fast.
+		for (t2 = x, i = 0; i < 8; i++)
+		{
+			x2 = SampleCurve(ax, bx, cx, t2) - x;
+			if (Math.abs(x2) < epsilon) return t2;
+
+			d2 = SampleCurveDerivativeX(ax, bx, cx, t2);
+			if (Math.abs(d2) < epsilon) break;
+
+			t2 = t2 - x2 / d2;
+		}
+
+		// Fall back to the bisection method for reliability.
+		t0 = 0.0;
+		t1 = 1.0;
+		t2 = x;
+
+		if (t2 < t0) return t0;
+		if (t2 > t1) return t1;
+
+		while (t0 < t1)
+		{
+			x2 = SampleCurve(ax, bx, cx, t2);
+			if (Math.abs(x2 - x) < epsilon) return t2;
+			if (x > x2) t0 = t2;
+			else t1 = t2;
+			t2 = (t1 - t0) * 0.5 + t0;
+		}
+
+		return t2; // Failure.
+	}
+
+	var duration = 1;
+	var cx = 3.0 * x1;
+	var bx = 3.0 * (x2 - x1) - cx;
+	var ax = 1.0 - cx - bx;
+	var cy = 3.0 * y1;
+	var by = 3.0 * (y2 - y1) - cy;
+	var ay = 1.0 - cy - by;
+
+	return Solve(ax, bx, cx, ay, by, cy, t, SolveEpsilon(duration));
 }
 
 /**
@@ -1321,6 +1433,48 @@ spriter.Keyframe.compare = function (a, b)
 
 /**
  * @constructor
+ */
+spriter.Curve = function ()
+{
+}
+
+spriter.Curve.prototype.type = "linear";
+spriter.Curve.prototype.c1 = 0.0;
+spriter.Curve.prototype.c2 = 0.0;
+spriter.Curve.prototype.c3 = 0.0;
+spriter.Curve.prototype.c4 = 0.0;
+
+/**
+ * @return {spriter.Curve} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.Curve.prototype.load = function (json)
+{
+	this.type = spriter.loadString(json, 'curve_type', "linear");
+	this.c1 = spriter.loadFloat(json, 'c1', 0.0);
+	this.c2 = spriter.loadFloat(json, 'c2', 0.0);
+	this.c3 = spriter.loadFloat(json, 'c3', 0.0);
+	this.c4 = spriter.loadFloat(json, 'c4', 0.0);
+	return this;
+}
+
+spriter.Curve.prototype.evaluate = function (t)
+{
+	switch (this.type)
+	{
+	case "instant": return 0;
+	case "linear": return t;
+	case "quadratic": return spriter.interpolateQuadratic(0.0, this.c1, 1.0, t);
+	case "cubic": return spriter.interpolateCubic(0.0, this.c1, this.c2, 1.0, t);
+	case "quartic": return spriter.interpolateQuartic(0.0, this.c1, this.c2, this.c3, 1.0, t);
+	case "quintic": return spriter.interpolateQuintic(0.0, this.c1, this.c2, this.c3, this.c4, 1.0, t);
+	case "bezier": return spriter.interpolateBezier(this.c1, this.c2, this.c3, this.c4, t);
+	}
+	return 0;
+}
+
+/**
+ * @constructor
  * @extends {spriter.Keyframe}
  */
 spriter.MainlineKeyframe = function ()
@@ -1402,6 +1556,7 @@ spriter.TimelineKeyframe = function (type)
 {
 	goog.base(this);
 	this.type = type;
+	this.curve = new spriter.Curve();
 }
 
 goog.inherits(spriter.TimelineKeyframe, spriter.Keyframe);
@@ -1410,12 +1565,8 @@ goog.inherits(spriter.TimelineKeyframe, spriter.Keyframe);
 spriter.TimelineKeyframe.prototype.type = "unknown";
 /** @type {number} */
 spriter.TimelineKeyframe.prototype.spin = 1; // 1: counter-clockwise, -1: clockwise
-/** @type {number} */
-spriter.TimelineKeyframe.prototype.curve = 1; // 0: instant, 1: linear, 2: quadratic, 3: cubic
-/** @type {number} */
-spriter.TimelineKeyframe.prototype.c1 = 0;
-/** @type {number} */
-spriter.TimelineKeyframe.prototype.c2 = 0;
+/** @type {spriter.Curve} */
+spriter.TimelineKeyframe.prototype.curve;
 
 /**
  * @return {spriter.TimelineKeyframe} 
@@ -1427,22 +1578,8 @@ spriter.TimelineKeyframe.prototype.load = function (json)
 	//var type = spriter.loadString(json, 'type', "sprite");
 	//if (this.type !== type) throw new Error();
 	this.spin = spriter.loadInt(json, 'spin', 1);
-	this.curve = spriter.loadInt(json, 'curve_type', 1);
-	this.c1 = spriter.loadInt(json, 'c1', 0);
-	this.c2 = spriter.loadInt(json, 'c2', 0);
+	this.curve.load(json);
 	return this;
-}
-
-spriter.TimelineKeyframe.prototype.evaluateCurve = function (time, time1, time2)
-{
-	var timeline_keyframe = this;
-	if (time1 === time2) { return 0; }
-	if (timeline_keyframe.curve === 0) { return 0; } // instant
-	var tween = (time - time1) / (time2 - time1);
-	if (timeline_keyframe.curve === 1) { return tween; } // linear
-	if (timeline_keyframe.curve === 2) { return spriter.interpolateQuadratic(0.0, timeline_keyframe.c1, 1.0, tween); }
-	if (timeline_keyframe.curve === 3) { return spriter.interpolateCubic(0.0, timeline_keyframe.c1, timeline_keyframe.c2, 1.0, tween); }
-	return 0;
 }
 
 /**
@@ -2035,7 +2172,13 @@ spriter.Pose.prototype.strike = function ()
 			var time1 = timeline_keyframe1.time;
 			var time2 = timeline_keyframe2.time;
 			if (time2 < time1) { time2 = anim.length; }
-			var tween = timeline_keyframe1.evaluateCurve(time, time1, time2);
+			var tween = 0.0;
+			if (time1 !== time2)
+			{
+				tween = (time - time1) / (time2 - time1);
+				tween = timeline_keyframe1.curve.evaluate(tween);
+			}
+
 			var pose_bone = pose_bone_array[bone_index] = (pose_bone_array[bone_index] || new spriter.Bone());
 			pose_bone.copy(timeline_keyframe1.bone).tween(timeline_keyframe2.bone, tween, timeline_keyframe1.spin);
 			pose_bone.parent_index = data_bone.parent_index; // set parent from bone_ref
@@ -2073,7 +2216,12 @@ spriter.Pose.prototype.strike = function ()
 			var time1 = timeline_keyframe1.time;
 			var time2 = timeline_keyframe2.time;
 			if (time2 < time1) { time2 = anim.length; }
-			var tween = timeline_keyframe1.evaluateCurve(time, time1, time2);
+			var tween = 0.0;
+			if (time1 !== time2)
+			{
+				tween = (time - time1) / (time2 - time1);
+				tween = timeline_keyframe1.curve.evaluate(tween);
+			}
 
 			switch (timeline.type)
 			{
