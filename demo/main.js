@@ -236,7 +236,7 @@ main.start = function ()
 	}
 
 	add_file("GreyGuy/", "player.scon", "player.tps.json");
-	//add_file("GreyGuyPlus/", "player_006.scon", "player_006.tps.json");
+	add_file("GreyGuyPlus/", "player_006.scon", "player_006.tps.json");
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/brawler/", "brawler.scml");
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/imp/", "imp.scml");
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/mage/", "mage.scml");
@@ -319,6 +319,27 @@ main.start = function ()
 			var entity_keys = spriter_pose.getEntityKeys();
 			var anim_keys = spriter_pose.getAnimKeys();
 			messages.innerHTML = "entity: " + entity_keys[entity_index] + ", anim: " + anim_keys[anim_index] + "<br>" + file.path + file.scon_url;
+			if (spriter_pose.event_array.length > 0)
+			{
+				messages.innerHTML += "<br>events: " + spriter_pose.event_array;
+			}
+			if (spriter_pose.sound_array.length > 0)
+			{
+				messages.innerHTML += "<br>sounds: " + spriter_pose.sound_array;
+			}
+			if (spriter_pose.tag_array.length > 0)
+			{
+				messages.innerHTML += "<br>tags: " + spriter_pose.tag_array;
+			}
+			var var_map_keys = Object.keys(spriter_pose.var_map);
+			if (var_map_keys.length > 0)
+			{
+				messages.innerHTML += "<br>vars: ";
+				for (var key in spriter_pose.var_map)
+				{
+					messages.innerHTML += "<br>" + key + " : " + spriter_pose.var_map[key];
+				}
+			}
 		}
 
 		if (ctx)
