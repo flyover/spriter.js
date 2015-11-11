@@ -2577,6 +2577,77 @@ spriter.Eventline.prototype.load = function (json)
 
 /**
  * @constructor
+ */
+spriter.MapInstruction = function ()
+{
+}
+
+/** @type {number} */
+spriter.MapInstruction.prototype.folder_index = -1;
+/** @type {number} */
+spriter.MapInstruction.prototype.file_index = -1;
+/** @type {number} */
+spriter.MapInstruction.prototype.target_folder_index = -1;
+/** @type {number} */
+spriter.MapInstruction.prototype.target_file_index = -1;
+
+/**
+ * @return {spriter.MapInstruction} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.MapInstruction.prototype.load = function (json)
+{
+	var map_instruction = this;
+
+	map_instruction.folder_index = spriter.loadInt(json, 'folder', -1);
+	map_instruction.file_index = spriter.loadInt(json, 'file', -1);
+	map_instruction.target_folder_index = spriter.loadInt(json, 'target_folder', -1);
+	map_instruction.target_file_index = spriter.loadInt(json, 'target_file', -1);
+
+	return map_instruction;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Element}
+ */
+spriter.CharacterMap = function ()
+{
+	var character_map = this;
+
+	goog.base(this);
+
+	character_map.map_instruction_array = [];
+}
+
+goog.inherits(spriter.CharacterMap, spriter.Element);
+
+/** @type {Array.<spriter.MapInstruction>} */
+spriter.CharacterMap.prototype.map_instruction_array;
+
+/**
+ * @return {spriter.CharacterMap} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.CharacterMap.prototype.load = function (json)
+{
+	var character_map = this;
+
+	goog.base(this, 'load', json);
+
+	character_map.map_instruction_array = [];
+	json.map = spriter.makeArray(json.map);
+	json.map.forEach(function (map_json)
+	{
+		var map_instruction = new spriter.MapInstruction().load(map_json);
+		character_map.map_instruction_array.push(map_instruction);
+	});
+
+	return character_map;
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  * @param {string} type
  */
@@ -2946,6 +3017,10 @@ spriter.Entity = function ()
 
 goog.inherits(spriter.Entity, spriter.Element);
 
+/** @type {Object.<string,spriter.CharacterMap>} */
+spriter.Entity.prototype.character_map_map;
+/** @type {Array.<string>} */
+spriter.Entity.prototype.character_map_keys;
 /** @type {Array.<spriter.VarDef>} */
 spriter.Entity.prototype.var_def_array;
 /** @type {Object.<string,spriter.ObjInfo>} */
@@ -2966,6 +3041,16 @@ spriter.Entity.prototype.load = function (json)
 	var entity = this;
 
 	goog.base(this, 'load', json);
+
+	entity.character_map_map = {};
+	entity.character_map_keys = [];
+	json.character_map = spriter.makeArray(json.character_map);
+	json.character_map.forEach(function (character_map_json)
+	{
+		var character_map = new spriter.CharacterMap().load(character_map_json);
+		entity.character_map_map[character_map.name] = character_map;
+		entity.character_map_keys.push(character_map.name);
+	});
 
 	entity.var_def_array = [];
 	json.var_defs = spriter.makeArray(json.var_defs);
@@ -3179,6 +3264,7 @@ spriter.Pose = function (data)
 {
 	this.data = data || null;
 
+	this.character_map_key_array = [];
 	this.bone_array = [];
 	this.object_array = [];
 	this.sound_array = [];
@@ -3192,6 +3278,8 @@ spriter.Pose.prototype.data;
 
 /** @type {string} */
 spriter.Pose.prototype.entity_key = "";
+/** @type {Array.<string>} */
+spriter.Pose.prototype.character_map_key_array;
 /** @type {string} */
 spriter.Pose.prototype.anim_key = "";
 /** @type {number} */
@@ -3565,6 +3653,42 @@ spriter.Pose.prototype.strike = function ()
 		// clamp output object array
 		pose_object_array.length = data_object_array.length;
 
+		// apply character map
+		pose.character_map_key_array.forEach(function (character_map_key)
+		{
+			var character_map = entity.character_map_map[character_map_key];
+			if (character_map)
+			{
+				character_map.map_instruction_array.forEach(function (map_instruction)
+				{
+					pose_object_array.forEach(function (object)
+					{
+						switch (object.type)
+						{
+						case 'sprite':
+							if ((object.folder_index === map_instruction.folder_index) && 
+								(object.file_index === map_instruction.file_index))
+							{
+								object.folder_index = map_instruction.target_folder_index;
+								object.file_index = map_instruction.target_file_index;
+							}
+							break;
+						case 'bone':
+						case 'box':
+						case 'sound':
+						case 'event':
+						case 'entity':
+						case 'variable':
+							break;
+						default:
+							throw new Error(object.type);
+						}
+					});
+				});
+			}
+		});
+
+		// compute object world space
 		pose_object_array.forEach(function (object)
 		{
 			switch (object.type)
