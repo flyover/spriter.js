@@ -1701,6 +1701,173 @@ spriter.Timeline.prototype.load = function (json)
 /**
  * @constructor
  * @extends {spriter.Element}
+ * @param {string} type
+ */
+spriter.VarDef = function (type)
+{
+	goog.base(this);
+	this.type = type;
+}
+
+goog.inherits(spriter.VarDef, spriter.Element);
+
+/** @type {string} */
+spriter.VarDef.prototype.type = "unknown";
+
+/**
+ * @return {spriter.VarDef} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.VarDef.prototype.load = function (json)
+{
+	var var_def = this;
+	goog.base(this, 'load', json);
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.VarDef}
+ */
+spriter.IntVarDef = function ()
+{
+	goog.base(this, 'int');
+}
+
+goog.inherits(spriter.IntVarDef, spriter.VarDef);
+
+/** @type {number} */
+spriter.IntVarDef.prototype.default_value = 0;
+/** @type {number} */
+spriter.IntVarDef.prototype.value = 0;
+
+/**
+ * @return {spriter.IntVarDef} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.IntVarDef.prototype.load = function (json)
+{
+	var var_def = this;
+	goog.base(this, 'load', json);
+	var_def.value = var_def.default_value = spriter.loadInt(json, 'default_value', 0);
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.VarDef}
+ */
+spriter.FloatVarDef = function ()
+{
+	goog.base(this, 'float');
+}
+
+goog.inherits(spriter.FloatVarDef, spriter.VarDef);
+
+/** @type {number} */
+spriter.FloatVarDef.prototype.default_value = 0.0;
+/** @type {number} */
+spriter.FloatVarDef.prototype.value = 0.0;
+
+/**
+ * @return {spriter.FloatVarDef} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.FloatVarDef.prototype.load = function (json)
+{
+	var var_def = this;
+	goog.base(this, 'load', json);
+	var_def.value = var_def.default_value = spriter.loadFloat(json, 'default_value', 0.0);
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.VarDef}
+ */
+spriter.StringVarDef = function ()
+{
+	goog.base(this, 'string');
+}
+
+goog.inherits(spriter.StringVarDef, spriter.VarDef);
+
+/** @type {string} */
+spriter.StringVarDef.prototype.default_value = "";
+/** @type {string} */
+spriter.StringVarDef.prototype.value = "";
+
+/**
+ * @return {spriter.StringVarDef} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.StringVarDef.prototype.load = function (json)
+{
+	var var_def = this;
+	goog.base(this, 'load', json);
+	var_def.value = var_def.default_value = spriter.loadString(json, 'default_value', "");
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Element}
+ * @param {string} type
+ */
+spriter.ObjInfo = function (type)
+{
+	goog.base(this);
+	this.type = type;
+}
+
+goog.inherits(spriter.ObjInfo, spriter.Element);
+
+/** @type {string} */
+spriter.ObjInfo.prototype.type = "unknown";
+/** @type {Array.<spriter.VarDef>} */
+spriter.ObjInfo.prototype.var_def_array;
+
+/**
+ * @return {spriter.ObjInfo} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.ObjInfo.prototype.load = function (json)
+{
+	var obj_info = this;
+
+	goog.base(this, 'load', json);
+
+	//var type = spriter.loadString(json, 'type', "unknown");
+	//if (this.type !== type) throw new Error();
+
+	this.var_def_array = [];
+	json.var_defs = spriter.makeArray(json.var_defs);
+	json.var_defs.forEach(function (var_defs_json)
+	{
+		switch (var_defs_json.type)
+		{
+		case 'int':
+			obj_info.var_def_array.push(new spriter.IntVarDef().load(var_defs_json));
+			break;
+		case 'float':
+			obj_info.var_def_array.push(new spriter.FloatVarDef().load(var_defs_json));
+			break;
+		case 'string':
+			obj_info.var_def_array.push(new spriter.StringVarDef().load(var_defs_json));
+			break;
+		default:
+			console.log("TODO: spriter.Entity.load", var_defs_json.type, var_defs_json);
+			obj_info.var_def_array.push(new spriter.VarDef(var_defs_json.type).load(var_defs_json));
+			break;
+		}
+	});
+
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Element}
  */
 spriter.Animation = function ()
 {
@@ -1764,6 +1931,12 @@ spriter.Entity = function ()
 
 goog.inherits(spriter.Entity, spriter.Element);
 
+/** @type {Array.<spriter.VarDef>} */
+spriter.Entity.prototype.var_def_array;
+/** @type {Object.<string,spriter.ObjInfo>} */
+spriter.Entity.prototype.obj_info_map;
+/** @type {Array.<string>} */
+spriter.Entity.prototype.obj_info_keys;
 /** @type {Object.<string,spriter.Animation>} */
 spriter.Entity.prototype.animation_map;
 /** @type {Array.<string>} */
@@ -1778,6 +1951,51 @@ spriter.Entity.prototype.load = function (json)
 	var entity = this;
 
 	goog.base(this, 'load', json);
+
+	entity.var_def_array = [];
+	json.var_defs = spriter.makeArray(json.var_defs);
+	json.var_defs.forEach(function (var_defs_json)
+	{
+		switch (var_defs_json.type)
+		{
+		case 'int':
+			entity.var_def_array.push(new spriter.IntVarDef().load(var_defs_json));
+			break;
+		case 'float':
+			entity.var_def_array.push(new spriter.FloatVarDef().load(var_defs_json));
+			break;
+		case 'string':
+			entity.var_def_array.push(new spriter.StringVarDef().load(var_defs_json));
+			break;
+		default:
+			console.log("TODO: spriter.Entity.load", var_defs_json.type, var_defs_json);
+			entity.var_def_array.push(new spriter.VarDef(var_defs_json.type).load(var_defs_json));
+			break;
+		}
+	});
+
+	entity.obj_info_map = {};
+	entity.obj_info_keys = [];
+	json.obj_info = spriter.makeArray(json.obj_info);
+	json.obj_info.forEach(function (obj_info_json)
+	{
+		switch (obj_info_json.type)
+		{
+		case 'sprite':
+		case 'bone':
+		case 'box':
+		case 'point':
+		case 'sound':
+		case 'entity':
+		case 'variable':
+		default:
+			console.log("TODO: spriter.Entity.load", obj_info_json.type, obj_info_json);
+			var obj_info = new spriter.ObjInfo(obj_info_json.type).load(obj_info_json);
+			break;
+		}
+		entity.obj_info_map[obj_info.name] = obj_info;
+		entity.obj_info_keys.push(obj_info.name);
+	});
 
 	entity.animation_map = {};
 	entity.animation_keys = [];
