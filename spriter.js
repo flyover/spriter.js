@@ -1867,6 +1867,63 @@ spriter.ObjInfo.prototype.load = function (json)
 
 /**
  * @constructor
+ */
+spriter.SpriteFrame = function ()
+{
+}
+
+/** @type {number} */
+spriter.SpriteFrame.prototype.folder_index = -1;
+/** @type {number} */
+spriter.SpriteFrame.prototype.file_index = -1;
+
+/**
+ * @return {spriter.SpriteFrame} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.SpriteFrame.prototype.load = function (json)
+{
+	this.folder_index = spriter.loadInt(json, 'folder', -1);
+	this.file_index = spriter.loadInt(json, 'file', -1);
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.ObjInfo}
+ */
+spriter.SpriteObjInfo = function ()
+{
+	goog.base(this, 'sprite');
+}
+
+goog.inherits(spriter.SpriteObjInfo, spriter.ObjInfo);
+
+/** @type {Array.<spriter.SpriteFrame>} */
+spriter.SpriteObjInfo.prototype.sprite_frame_array;
+
+/**
+ * @return {spriter.SpriteObjInfo} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.SpriteObjInfo.prototype.load = function (json)
+{
+	var obj_info = this;
+
+	goog.base(this, 'load', json);
+
+	obj_info.sprite_frame_array = [];
+	json.frames = spriter.makeArray(json.frames);
+	json.frames.forEach(function (frames_json)
+	{
+		obj_info.sprite_frame_array.push(new spriter.SpriteFrame().load(frames_json));
+	});
+
+	return this;
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Animation = function ()
@@ -1982,6 +2039,8 @@ spriter.Entity.prototype.load = function (json)
 		switch (obj_info_json.type)
 		{
 		case 'sprite':
+			var obj_info = new spriter.SpriteObjInfo().load(obj_info_json);
+			break;
 		case 'bone':
 		case 'box':
 		case 'point':
