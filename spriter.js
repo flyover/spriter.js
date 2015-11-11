@@ -2130,6 +2130,242 @@ spriter.VariableTimelineKeyframe.prototype.load = function (json)
  * @constructor
  * @extends {spriter.Element}
  */
+spriter.TagDef = function ()
+{
+	goog.base(this);
+}
+
+goog.inherits(spriter.TagDef, spriter.Element);
+
+/** @type {number} */
+spriter.TagDef.prototype.tag_index = -1;
+
+/**
+ * @return {spriter.TagDef} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.TagDef.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Element}
+ */
+spriter.Tag = function ()
+{
+	goog.base(this);
+}
+
+goog.inherits(spriter.Tag, spriter.Element);
+
+/** @type {number} */
+spriter.Tag.prototype.tag_def_index = -1;
+
+/**
+ * @return {spriter.Tag} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.Tag.prototype.load = function (json)
+{
+	var tag = this;
+	goog.base(this, 'load', json);
+	tag.tag_def_index = spriter.loadInt(json, 't', -1);
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Keyframe}
+ */
+spriter.TaglineKeyframe = function ()
+{
+	goog.base(this);
+}
+
+goog.inherits(spriter.TaglineKeyframe, spriter.Keyframe);
+
+/** @type {Array.<spriter.Tag>} */
+spriter.TaglineKeyframe.prototype.tag_array;
+
+/**
+ * @return {spriter.TaglineKeyframe} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.TaglineKeyframe.prototype.load = function (json)
+{
+	var tagline_keyframe = this;
+	goog.base(this, 'load', json);
+
+	tagline_keyframe.tag_array = [];
+	json.tag = spriter.makeArray(json.tag);
+	json.tag.forEach(function (tag_json)
+	{
+		tagline_keyframe.tag_array.push(new spriter.Tag().load(tag_json));
+	});
+
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Element}
+ */
+spriter.Tagline = function ()
+{
+	goog.base(this);
+	this.keyframe_array = [];
+}
+
+goog.inherits(spriter.Tagline, spriter.Element);
+
+/** @type {Array.<spriter.TaglineKeyframe>} */
+spriter.Tagline.prototype.keyframe_array;
+
+/**
+ * @return {spriter.Tagline} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.Tagline.prototype.load = function (json)
+{
+	var tagline = this;
+	goog.base(this, 'load', json);
+
+	tagline.keyframe_array = [];
+	json.key = spriter.makeArray(json.key);
+	json.key.forEach(function (key_json)
+	{
+		tagline.keyframe_array.push(new spriter.TaglineKeyframe().load(key_json));
+	});
+
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Keyframe}
+ */
+spriter.VarlineKeyframe = function ()
+{
+	goog.base(this);
+}
+
+goog.inherits(spriter.VarlineKeyframe, spriter.Keyframe);
+
+/** @type {number|string} */
+spriter.VarlineKeyframe.prototype.val;
+
+/**
+ * @return {spriter.VarlineKeyframe} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.VarlineKeyframe.prototype.load = function (json)
+{
+	var varline_keyframe = this;
+	goog.base(this, 'load', json);
+	switch (typeof(json.val))
+	{
+	case 'number':
+		varline_keyframe.val = spriter.loadFloat(json, 'val', 0);
+		break;
+	case 'string':
+		varline_keyframe.val = spriter.loadString(json, 'val', "");
+		break;
+	}
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Element}
+ */
+spriter.Varline = function ()
+{
+	goog.base(this);
+}
+
+goog.inherits(spriter.Varline, spriter.Element);
+
+/** @type {number} */
+spriter.Varline.prototype.var_def_index = -1;
+/** @type {Array.<spriter.VarlineKeyframe>} */
+spriter.Varline.prototype.keyframe_array;
+
+/**
+ * @return {spriter.Varline} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.Varline.prototype.load = function (json)
+{
+	var varline = this;
+
+	goog.base(this, 'load', json);
+
+	varline.var_def_index = spriter.loadInt(json, 'def', -1);
+
+	varline.keyframe_array = [];
+	json.key = spriter.makeArray(json.key);
+	json.key.forEach(function (key_json)
+	{
+		varline.keyframe_array.push(new spriter.VarlineKeyframe().load(key_json));
+	});
+
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Element}
+ */
+spriter.Meta = function ()
+{
+	goog.base(this);
+}
+
+goog.inherits(spriter.Meta, spriter.Element);
+
+/** @type {spriter.Tagline} */
+spriter.Meta.prototype.tagline;
+/** @type {Array.<spriter.Varline>} */
+spriter.Meta.prototype.varline_array;
+
+/**
+ * @return {spriter.Meta} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.Meta.prototype.load = function (json)
+{
+	var meta = this;
+
+	goog.base(this, 'load', json);
+
+	meta.tagline = new spriter.Tagline();
+	if (json.tagline)
+	{
+		meta.tagline.load(json.tagline);
+	}
+
+	meta.varline_array = [];
+	json.valline = json.valline || null; // HACK
+	json.varline = json.varline || json.valline; // HACK
+	if (json.varline)
+	{
+		json.varline = spriter.makeArray(json.varline);
+		json.varline.forEach(function (varline_json)
+		{
+			meta.varline_array.push(new spriter.Varline().load(varline_json));
+		});
+	}
+
+	return meta;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Element}
+ */
 spriter.Timeline = function ()
 {
 	goog.base(this);
@@ -2143,6 +2379,8 @@ spriter.Timeline.prototype.type = "sprite";
 spriter.Timeline.prototype.object_index = -1;
 /** @type {Array.<spriter.TimelineKeyframe>} */
 spriter.Timeline.prototype.keyframe_array;
+/** @type {spriter.Meta} */
+spriter.Timeline.prototype.meta;
 
 /**
  * @return {spriter.Timeline} 
@@ -2208,6 +2446,11 @@ spriter.Timeline.prototype.load = function (json)
 		break;
 	}
 	timeline.keyframe_array = timeline.keyframe_array.sort(spriter.Keyframe.compare);
+
+	if (json.meta)
+	{
+		timeline.meta = new spriter.Meta().load(json.meta);
+	}
 
 	return timeline;
 }
@@ -2513,6 +2756,8 @@ spriter.Animation.prototype.loop_to = 0;
 spriter.Animation.prototype.mainline;
 /** @type {Array.<spriter.Timeline>} */
 spriter.Animation.prototype.timeline_array;
+/** @type {spriter.Meta} */
+spriter.Animation.prototype.meta;
 /** @type {number} */
 spriter.Animation.prototype.min_time = 0;
 /** @type {number} */
@@ -2540,6 +2785,11 @@ spriter.Animation.prototype.load = function (json)
 	{
 		anim.timeline_array.push(new spriter.Timeline().load(timeline_json));
 	});
+
+	if (json.meta)
+	{
+		anim.meta = new spriter.Meta().load(json.meta);
+	}
 
 	anim.min_time = 0;
 	anim.max_time = anim.length;
@@ -2658,6 +2908,9 @@ spriter.Data = function ()
 /** @type {Array.<spriter.Folder>} */
 spriter.Data.prototype.folder_array;
 
+/** @type {Array.<spriter.TagDef>} */
+spriter.Data.prototype.tag_def_array;
+
 /** @type {Object.<string,spriter.Entity>} */
 spriter.Data.prototype.entity_map;
 /** @type {Array.<string>} */
@@ -2682,6 +2935,13 @@ spriter.Data.prototype.load = function (json)
 	json.folder.forEach(function (folder_json)
 	{
 		data.folder_array.push(new spriter.Folder().load(folder_json));
+	});
+
+	data.tag_def_array = [];
+	json.tag_list = spriter.makeArray(json.tag_list);
+	json.tag_list.forEach(function (tag_list_json)
+	{
+		data.tag_def_array.push(new spriter.TagDef().load(tag_list_json));
 	});
 
 	data.entity_map = {};
@@ -2783,6 +3043,8 @@ spriter.Pose = function (data)
 
 	this.bone_array = [];
 	this.object_array = [];
+	this.tag_array = [];
+	this.var_map = {};
 }
 
 /** @type {spriter.Data} */
@@ -2805,6 +3067,12 @@ spriter.Pose.prototype.bone_array;
 
 /** @type {Array.<spriter.Object>} */
 spriter.Pose.prototype.object_array;
+
+/** @type {Array.<string>} */
+spriter.Pose.prototype.tag_array;
+
+/** @type {Object.<string,number|string>} */
+spriter.Pose.prototype.var_map;
 
 /**
  * @return {Object.<string, spriter.Entity>} 
@@ -2985,6 +3253,15 @@ spriter.Pose.prototype.strike = function ()
 	pose.dirty = false;
 
 	var entity = pose.curEntity();
+
+	pose.var_map = pose.var_map || {};
+	entity.var_def_array.forEach(function (var_def)
+	{
+		if (!(var_def.name in pose.var_map))
+		{
+			pose.var_map[var_def.name] = var_def.default_value;
+		}
+	});
 
 	var anim = pose.curAnim();
 
@@ -3247,6 +3524,69 @@ spriter.Pose.prototype.strike = function ()
 				throw new Error(object.type);
 			}
 		});
+		if (anim.meta)
+		{
+			// process tagline
+			if (anim.meta.tagline)
+			{
+				var keyframe_array = anim.meta.tagline.keyframe_array;
+				var keyframe_index = spriter.Keyframe.find(keyframe_array, time);
+				if (keyframe_index !== -1)
+				{
+					var keyframe = keyframe_array[keyframe_index];
+					if (((elapsed_time < 0) && ((time <= keyframe.time) && (keyframe.time <= prev_time))) ||
+						((elapsed_time > 0) && ((prev_time <= keyframe.time) && (keyframe.time <= time))))
+					{
+						pose.tag_array = [];
+						keyframe.tag_array.forEach(function (tag)
+						{
+							var tag_def = pose.data.tag_def_array[tag.tag_def_index];
+							pose.tag_array.push(tag_def.name);
+						});
+						pose.tag_array = pose.tag_array.sort();
+						//console.log(prev_time, keyframe.time, time, "tag", pose.tag_array);
+					}
+				}
+			}
+
+			// process varlines
+			pose.var_map = pose.var_map || {};
+			anim.meta.varline_array.forEach(function (varline)
+			{
+				var keyframe_array = varline.keyframe_array;
+				var keyframe_index1 = spriter.Keyframe.find(keyframe_array, time);
+				if (keyframe_index1 !== -1)
+				{
+					var keyframe_index2 = (keyframe_index1 + 1) % keyframe_array.length;
+					var keyframe1 = keyframe_array[keyframe_index1];
+					var keyframe2 = keyframe_array[keyframe_index2];
+					var time1 = keyframe1.time;
+					var time2 = keyframe2.time;
+					if (time2 < time1) { time2 = anim.length; }
+					var tween = 0.0;
+					if (time1 !== time2)
+					{
+						tween = (time - time1) / (time2 - time1);
+						// TODO: tween = keyframe1.curve.evaluate(tween);
+					}
+					var var_def = entity.var_def_array[varline.var_def_index];
+					var val = 0;
+					switch (var_def.type)
+					{
+					case 'int':
+						val = 0 | spriter.tween(+keyframe1.val, +keyframe2.val, tween);
+						break;
+					case 'float':
+						val = spriter.tween(+keyframe1.val, +keyframe2.val, tween);
+						break;
+					case 'string':
+						val = keyframe1.val;
+					}
+					//console.log(prev_time, keyframe.time, time, "var", var_def.name, val, var_def.default_value);
+					pose.var_map[var_def.name] = val;
+				}
+			});
+		}
 	}
 }
 
