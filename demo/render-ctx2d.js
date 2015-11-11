@@ -200,6 +200,8 @@ renderCtx2D.prototype.drawDebugPose = function (spriter_pose, atlas_data)
 			render.drawDebugPose(object.pose, atlas_data); // recursive
 			ctx.restore();
 			break;
+		case 'variable':
+			break;
 		}
 	});
 }

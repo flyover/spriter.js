@@ -1622,6 +1622,46 @@ spriter.EntityObject.prototype.tween = function (other, tween, spin)
 
 /**
  * @constructor
+ * @extends {spriter.Object}
+ */
+spriter.VariableObject = function ()
+{
+	goog.base(this, 'variable');
+}
+
+goog.inherits(spriter.VariableObject, spriter.Object);
+
+/**
+ * @return {spriter.VariableObject} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.VariableObject.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	return this;
+}
+
+/**
+ * @return {spriter.VariableObject}
+ * @param {spriter.VariableObject} other
+ */
+spriter.VariableObject.prototype.copy = function (other)
+{
+	return this;
+}
+
+/**
+ * @return {void}
+ * @param {spriter.VariableObject} other
+ * @param {number} tween
+ * @param {number} spin
+ */
+spriter.VariableObject.prototype.tween = function (other, tween, spin)
+{
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Ref = function ()
@@ -2063,6 +2103,31 @@ spriter.EntityTimelineKeyframe.prototype.load = function (json)
 
 /**
  * @constructor
+ * @extends {spriter.TimelineKeyframe}
+ */
+spriter.VariableTimelineKeyframe = function ()
+{
+	goog.base(this, 'variable');
+}
+
+goog.inherits(spriter.VariableTimelineKeyframe, spriter.TimelineKeyframe);
+
+/** @type {spriter.VariableObject} */
+spriter.VariableTimelineKeyframe.prototype.variable;
+
+/**
+ * @return {spriter.TimelineKeyframe} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.VariableTimelineKeyframe.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	this.variable = new spriter.VariableObject().load(json.object || {});
+	return this;
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Timeline = function ()
@@ -2133,6 +2198,11 @@ spriter.Timeline.prototype.load = function (json)
 		});
 		break;
 	case 'variable':
+		json.key.forEach(function (key_json)
+		{
+			timeline.keyframe_array.push(new spriter.VariableTimelineKeyframe().load(key_json));
+		});
+		break;
 	default:
 		console.log("TODO: spriter.Timeline::load", timeline.type, json.key);
 		break;
@@ -3060,6 +3130,9 @@ spriter.Pose.prototype.strike = function ()
 				pose_entity.parent_index = data_object.parent_index; // set parent from object_ref
 				break;
 			case 'variable':
+				var pose_variable = pose_object_array[object_index] = (pose_object_array[object_index] || new spriter.VariableObject());
+				pose_variable.name = timeline.name;
+				pose_variable.copy(timeline_keyframe1.variable).tween(timeline_keyframe2.variable, tween, timeline_keyframe1.spin);
 				break;
 			default:
 				throw new Error(timeline.type);
