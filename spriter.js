@@ -1480,10 +1480,13 @@ spriter.Curve.prototype.evaluate = function (t)
 spriter.MainlineKeyframe = function ()
 {
 	goog.base(this);
+	this.curve = new spriter.Curve();
 }
 
 goog.inherits(spriter.MainlineKeyframe, spriter.Keyframe);
 
+/** @type {spriter.Curve} */
+spriter.MainlineKeyframe.prototype.curve;
 /** @type {Array.<spriter.BoneRef>} */
 spriter.MainlineKeyframe.prototype.bone_ref_array;
 /** @type {Array.<spriter.ObjectRef>} */
@@ -1498,6 +1501,8 @@ spriter.MainlineKeyframe.prototype.load = function (json)
 	var mainline_keyframe = this;
 
 	goog.base(this, 'load', json);
+
+	mainline_keyframe.curve.load(json);
 
 	mainline_keyframe.bone_ref_array = [];
 	json.bone_ref = spriter.makeArray(json.bone_ref);
@@ -2152,12 +2157,24 @@ spriter.Pose.prototype.strike = function ()
 	if (anim)
 	{
 		var mainline_keyframe_array = anim.mainline.keyframe_array;
-		var mainline_keyframe_index = spriter.Keyframe.find(mainline_keyframe_array, time);
-		var mainline_keyframe = mainline_keyframe_array[mainline_keyframe_index];
+		var mainline_keyframe_index1 = spriter.Keyframe.find(mainline_keyframe_array, time);
+		var mainline_keyframe_index2 = (mainline_keyframe_index1 + 1) % mainline_keyframe_array.length;
+		var mainline_keyframe1 = mainline_keyframe_array[mainline_keyframe_index1];
+		var mainline_keyframe2 = mainline_keyframe_array[mainline_keyframe_index2];
+		var mainline_time1 = mainline_keyframe1.time;
+		var mainline_time2 = mainline_keyframe2.time;
+		if (mainline_time2 < mainline_time1) { mainline_time2 = anim.length; }
+		var mainline_time = time;
+		if (mainline_time1 !== mainline_time2)
+		{
+			var mainline_tween = (time - mainline_time1) / (mainline_time2 - mainline_time1);
+			mainline_tween = mainline_keyframe1.curve.evaluate(mainline_tween);
+			mainline_time = spriter.tween(mainline_time1, mainline_time2, mainline_tween);
+		}
 
 		var timeline_array = anim.timeline_array;
 
-		var data_bone_array = mainline_keyframe.bone_ref_array;
+		var data_bone_array = mainline_keyframe1.bone_ref_array;
 		var pose_bone_array = pose.bone_array;
 
 		data_bone_array.forEach(function (data_bone, bone_index)
@@ -2175,7 +2192,7 @@ spriter.Pose.prototype.strike = function ()
 			var tween = 0.0;
 			if (time1 !== time2)
 			{
-				tween = (time - time1) / (time2 - time1);
+				tween = (mainline_time - time1) / (time2 - time1);
 				tween = timeline_keyframe1.curve.evaluate(tween);
 			}
 
@@ -2201,7 +2218,7 @@ spriter.Pose.prototype.strike = function ()
 			}
 		});
 
-		var data_object_array = mainline_keyframe.object_ref_array;
+		var data_object_array = mainline_keyframe1.object_ref_array;
 		var pose_object_array = pose.object_array;
 
 		data_object_array.forEach(function (data_object, object_index)
@@ -2219,7 +2236,7 @@ spriter.Pose.prototype.strike = function ()
 			var tween = 0.0;
 			if (time1 !== time2)
 			{
-				tween = (time - time1) / (time2 - time1);
+				tween = (mainline_time - time1) / (time2 - time1);
 				tween = timeline_keyframe1.curve.evaluate(tween);
 			}
 
