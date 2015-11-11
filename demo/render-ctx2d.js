@@ -110,6 +110,19 @@ renderCtx2D.prototype.drawDebugPose = function (spriter_pose, atlas_data)
 		ctx.save();
 		ctxApplySpace(ctx, bone.world_space);
 		ctxDrawPoint(ctx);
+		var entity = spriter_pose.data.entity_map[spriter_pose.entity_key];
+		var bone_info = entity.obj_info_map[bone.name];
+		if (bone_info)
+		{
+			ctx.beginPath();
+			ctx.moveTo(0, 0);
+			ctx.lineTo(bone_info.h/2, -bone_info.h/2);
+			ctx.lineTo(bone_info.w, 0);
+			ctx.lineTo(bone_info.h/2, bone_info.h/2);
+			ctx.closePath();
+			ctx.strokeStyle = 'cyan';
+			ctx.stroke();
+		}
 		ctx.restore();
 	});
 
@@ -132,6 +145,24 @@ renderCtx2D.prototype.drawDebugPose = function (spriter_pose, atlas_data)
 			ctx.lineWidth = 1 / Math.min(file.width/2, file.height/2);
 			ctxApplyAtlasSitePosition(ctx, site);
 			ctxDrawMesh(ctx, triangles, positions);
+			ctx.restore();
+			break;
+		case 'bone':
+			ctx.save();
+			ctxApplySpace(ctx, object.world_space);
+			var entity = spriter_pose.data.entity_map[spriter_pose.entity_key];
+			var bone_info = entity.obj_info_map[object.name];
+			if (bone_info)
+			{
+				ctx.beginPath();
+				ctx.moveTo(0, 0);
+				ctx.lineTo(bone_info.h/2, -bone_info.h/2);
+				ctx.lineTo(bone_info.w, 0);
+				ctx.lineTo(bone_info.h/2, bone_info.h/2);
+				ctx.closePath();
+				ctx.strokeStyle = 'cyan';
+				ctx.stroke();
+			}
 			ctx.restore();
 			break;
 		}
