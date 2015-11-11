@@ -1345,6 +1345,69 @@ spriter.BoneObject.prototype.copy = function (other)
 
 /**
  * @constructor
+ * @extends {spriter.Object}
+ */
+spriter.BoxObject = function ()
+{
+	goog.base(this, 'box');
+	this.local_space = new spriter.Space();
+	this.world_space = new spriter.Space();
+	this.pivot = new spriter.Pivot();
+}
+
+goog.inherits(spriter.BoxObject, spriter.Object);
+
+/** @type {number} */
+spriter.BoxObject.prototype.parent_index = -1;
+/** @type {spriter.Space} */
+spriter.BoxObject.prototype.local_space;
+/** @type {spriter.Space} */
+spriter.BoxObject.prototype.world_space;
+/** @type {spriter.Pivot} */
+spriter.BoxObject.prototype.pivot;
+
+/**
+ * @return {spriter.BoxObject} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.BoxObject.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	this.parent_index = spriter.loadInt(json, 'parent', -1);
+	this.local_space.load(json);
+	this.world_space.copy(this.local_space);
+	this.pivot.x = spriter.loadFloat(json, 'pivot_x', 0);
+	this.pivot.y = spriter.loadFloat(json, 'pivot_y', 1);
+	return this;
+}
+
+/**
+ * @return {spriter.BoxObject}
+ * @param {spriter.BoxObject} other
+ */
+spriter.BoxObject.prototype.copy = function (other)
+{
+	this.parent_index = other.parent_index;
+	this.local_space.copy(other.local_space);
+	this.world_space.copy(other.world_space);
+	this.pivot.copy(other.pivot);
+	return this;
+}
+
+/**
+ * @return {void}
+ * @param {spriter.BoxObject} other
+ * @param {number} tween
+ * @param {number} spin
+ */
+spriter.BoxObject.prototype.tween = function (other, tween, spin)
+{
+	spriter.Space.tween(this.local_space, other.local_space, tween, spin, this.local_space);
+	//spriter.Vector.tween(this.pivot, other.pivot, tween, this.pivot);
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Ref = function ()
@@ -1686,6 +1749,31 @@ spriter.BoneTimelineKeyframe.prototype.load = function (json)
 
 /**
  * @constructor
+ * @extends {spriter.TimelineKeyframe}
+ */
+spriter.BoxTimelineKeyframe = function ()
+{
+	goog.base(this, 'box');
+}
+
+goog.inherits(spriter.BoxTimelineKeyframe, spriter.TimelineKeyframe);
+
+/** @type {spriter.BoxObject} */
+spriter.BoxTimelineKeyframe.prototype.box;
+
+/**
+ * @return {spriter.TimelineKeyframe} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.BoxTimelineKeyframe.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	this.box = new spriter.BoxObject().load(json.object || {});
+	return this;
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Timeline = function ()
@@ -1732,6 +1820,11 @@ spriter.Timeline.prototype.load = function (json)
 		});
 		break;
 	case 'box':
+		json.key.forEach(function (key_json)
+		{
+			timeline.keyframe_array.push(new spriter.BoxTimelineKeyframe().load(key_json));
+		});
+		break;
 	case 'point':
 	case 'sound':
 	case 'entity':
@@ -1999,6 +2092,34 @@ spriter.BoneObjInfo.prototype.load = function (json)
 
 /**
  * @constructor
+ * @extends {spriter.ObjInfo}
+ */
+spriter.BoxObjInfo = function ()
+{
+	goog.base(this, 'box');
+}
+
+goog.inherits(spriter.BoxObjInfo, spriter.ObjInfo);
+
+/** @type {number} */
+spriter.BoxObjInfo.prototype.w = 0.0;
+/** @type {number} */
+spriter.BoxObjInfo.prototype.h = 0.0;
+
+/**
+ * @return {spriter.BoxObjInfo} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.BoxObjInfo.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	this.w = spriter.loadFloat(json, 'w', 0.0);
+	this.h = spriter.loadFloat(json, 'h', 0.0);
+	return this;
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Animation = function ()
@@ -2120,6 +2241,8 @@ spriter.Entity.prototype.load = function (json)
 			var obj_info = new spriter.BoneObjInfo().load(obj_info_json);
 			break;
 		case 'box':
+			var obj_info = new spriter.BoxObjInfo().load(obj_info_json);
+			break;
 		case 'point':
 		case 'sound':
 		case 'entity':
@@ -2610,6 +2733,11 @@ spriter.Pose.prototype.strike = function ()
 				pose_bone.parent_index = data_object.parent_index; // set parent from object_ref
 				break;
 			case 'box':
+				var pose_box = pose_object_array[object_index] = (pose_object_array[object_index] || new spriter.BoxObject());
+				pose_box.copy(timeline_keyframe1.box).tween(timeline_keyframe2.box, tween, timeline_keyframe1.spin);
+				pose_box.name = timeline.name; // set name from timeline
+				pose_box.parent_index = data_object.parent_index; // set parent from object_ref
+				break;
 			case 'point':
 			case 'sound':
 			case 'entity':
@@ -2658,6 +2786,23 @@ spriter.Pose.prototype.strike = function ()
 				}
 				break;
 			case 'box':
+				var bone = pose_bone_array[object.parent_index];
+				if (bone)
+				{
+					spriter.Space.combine(bone.world_space, object.local_space, object.world_space);
+				}
+				else
+				{
+					object.world_space.copy(object.local_space);
+				}
+				var box_info = entity.obj_info_map[object.name];
+				if (box_info)
+				{
+					var offset_x = (0.5 - object.pivot.x) * box_info.w;
+					var offset_y = (0.5 - object.pivot.y) * box_info.h;
+					spriter.Space.translate(object.world_space, offset_x, offset_y);
+				}
+				break;
 			case 'point':
 			case 'sound':
 			case 'entity':

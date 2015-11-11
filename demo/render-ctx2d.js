@@ -165,6 +165,20 @@ renderCtx2D.prototype.drawDebugPose = function (spriter_pose, atlas_data)
 			}
 			ctx.restore();
 			break;
+		case 'box':
+			var entity = spriter_pose.data.entity_map[spriter_pose.entity_key];
+			var box_info = entity.obj_info_map[object.name];
+			if (box_info)
+			{
+				ctx.save();
+				ctxApplySpace(ctx, object.world_space);
+				ctx.beginPath();
+				ctx.rect(-box_info.w/2, -box_info.h/2, box_info.w, box_info.h);
+				ctx.strokeStyle = 'magenta';
+				ctx.stroke();
+				ctx.restore();
+			}
+			break;
 		}
 	});
 }
