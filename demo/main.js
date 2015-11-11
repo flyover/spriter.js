@@ -172,6 +172,23 @@ main.start = function ()
 							counter_dec();
 						}})(page));
 					});
+
+					// with an atlas, still need to load the sound files
+					spriter_pose.data.folder_array.forEach(function (folder)
+					{
+						folder.file_array.forEach(function (file)
+						{
+							switch (file.type)
+							{
+							case 'image':
+								break;
+							case 'sound':
+							default:
+								console.log("TODO: load", file.type, file.name);
+								break;
+							}
+						});
+					});
 				}
 				else
 				{

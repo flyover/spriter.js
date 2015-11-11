@@ -185,6 +185,8 @@ renderCtx2D.prototype.drawDebugPose = function (spriter_pose, atlas_data)
 			ctxDrawPoint(ctx);
 			ctx.restore();
 			break;
+		case 'sound':
+			break;
 		}
 	});
 }

@@ -1066,6 +1066,27 @@ spriter.ImageFile.prototype.load = function (json)
 
 /**
  * @constructor
+ * @extends {spriter.File}
+ */
+spriter.SoundFile = function ()
+{
+	goog.base(this, 'sound');
+}
+
+goog.inherits(spriter.SoundFile, spriter.File);
+
+/**
+ * @return {spriter.File} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.SoundFile.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	return this;
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Folder = function ()
@@ -1097,6 +1118,9 @@ spriter.Folder.prototype.load = function (json)
 		case 'image':
 		default:
 			folder.file_array.push(new spriter.ImageFile().load(file_json));
+			break;
+		case 'sound':
+			folder.file_array.push(new spriter.SoundFile().load(file_json));
 			break;
 		}
 	});
@@ -1855,6 +1879,31 @@ spriter.PointTimelineKeyframe.prototype.load = function (json)
 
 /**
  * @constructor
+ * @extends {spriter.TimelineKeyframe}
+ */
+spriter.SoundTimelineKeyframe = function ()
+{
+	goog.base(this, 'sound');
+}
+
+goog.inherits(spriter.SoundTimelineKeyframe, spriter.TimelineKeyframe);
+
+/** @type {spriter.SoundObject} */
+spriter.SoundTimelineKeyframe.prototype.sound;
+
+/**
+ * @return {spriter.TimelineKeyframe} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.SoundTimelineKeyframe.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	this.sound = new spriter.SoundObject().load(json.object || {});
+	return this;
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Timeline = function ()
@@ -1913,6 +1962,11 @@ spriter.Timeline.prototype.load = function (json)
 		});
 		break;
 	case 'sound':
+		json.key.forEach(function (key_json)
+		{
+			timeline.keyframe_array.push(new spriter.SoundTimelineKeyframe().load(key_json));
+		});
+		break;
 	case 'entity':
 	case 'variable':
 	default:
@@ -2831,6 +2885,10 @@ spriter.Pose.prototype.strike = function ()
 				pose_point.parent_index = data_object.parent_index; // set parent from object_ref
 				break;
 			case 'sound':
+				var pose_sound = pose_object_array[object_index] = (pose_object_array[object_index] || new spriter.SoundObject());
+				pose_sound.copy(timeline_keyframe1.sound).tween(timeline_keyframe2.sound, tween, timeline_keyframe1.spin);
+				pose_sound.name = timeline.name;
+				break;
 			case 'entity':
 			case 'variable':
 				break;
@@ -2906,6 +2964,7 @@ spriter.Pose.prototype.strike = function ()
 				}
 				break;
 			case 'sound':
+				break;
 			case 'entity':
 			case 'variable':
 				break;
