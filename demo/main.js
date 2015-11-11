@@ -219,7 +219,7 @@ main.start = function ()
 	}
 
 	add_file("GreyGuy/", "player.scon", "player.tps.json");
-	add_file("GreyGuyPlus/", "player_006.scon", "player_006.tps.json");
+	//add_file("GreyGuyPlus/", "player_006.scon", "player_006.tps.json");
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/brawler/", "brawler.scml");
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/imp/", "imp.scml");
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/mage/", "mage.scml");
