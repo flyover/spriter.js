@@ -1408,6 +1408,62 @@ spriter.BoxObject.prototype.tween = function (other, tween, spin)
 
 /**
  * @constructor
+ * @extends {spriter.Object}
+ */
+spriter.PointObject = function ()
+{
+	goog.base(this, 'point');
+	this.local_space = new spriter.Space();
+	this.world_space = new spriter.Space();
+}
+
+goog.inherits(spriter.PointObject, spriter.Object);
+
+/** @type {number} */
+spriter.PointObject.prototype.parent_index = -1;
+/** @type {spriter.Space} */
+spriter.PointObject.prototype.local_space;
+/** @type {spriter.Space} */
+spriter.PointObject.prototype.world_space;
+
+/**
+ * @return {spriter.PointObject} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.PointObject.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	this.parent_index = spriter.loadInt(json, 'parent', -1);
+	this.local_space.load(json);
+	this.world_space.copy(this.local_space);
+	return this;
+}
+
+/**
+ * @return {spriter.PointObject}
+ * @param {spriter.PointObject} other
+ */
+spriter.PointObject.prototype.copy = function (other)
+{
+	this.parent_index = other.parent_index;
+	this.local_space.copy(other.local_space);
+	this.world_space.copy(other.world_space);
+	return this;
+}
+
+/**
+ * @return {void}
+ * @param {spriter.PointObject} other
+ * @param {number} tween
+ * @param {number} spin
+ */
+spriter.PointObject.prototype.tween = function (other, tween, spin)
+{
+	spriter.Space.tween(this.local_space, other.local_space, tween, spin, this.local_space);
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Ref = function ()
@@ -1774,6 +1830,31 @@ spriter.BoxTimelineKeyframe.prototype.load = function (json)
 
 /**
  * @constructor
+ * @extends {spriter.TimelineKeyframe}
+ */
+spriter.PointTimelineKeyframe = function ()
+{
+	goog.base(this, 'point');
+}
+
+goog.inherits(spriter.PointTimelineKeyframe, spriter.TimelineKeyframe);
+
+/** @type {spriter.PointObject} */
+spriter.PointTimelineKeyframe.prototype.point;
+
+/**
+ * @return {spriter.TimelineKeyframe} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.PointTimelineKeyframe.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	this.point = new spriter.PointObject().load(json.object || {});
+	return this;
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Timeline = function ()
@@ -1826,6 +1907,11 @@ spriter.Timeline.prototype.load = function (json)
 		});
 		break;
 	case 'point':
+		json.key.forEach(function (key_json)
+		{
+			timeline.keyframe_array.push(new spriter.PointTimelineKeyframe().load(key_json));
+		});
+		break;
 	case 'sound':
 	case 'entity':
 	case 'variable':
@@ -2739,6 +2825,11 @@ spriter.Pose.prototype.strike = function ()
 				pose_box.parent_index = data_object.parent_index; // set parent from object_ref
 				break;
 			case 'point':
+				var pose_point = pose_object_array[object_index] = (pose_object_array[object_index] || new spriter.PointObject());
+				pose_point.copy(timeline_keyframe1.point).tween(timeline_keyframe2.point, tween, timeline_keyframe1.spin);
+				pose_point.name = timeline.name;
+				pose_point.parent_index = data_object.parent_index; // set parent from object_ref
+				break;
 			case 'sound':
 			case 'entity':
 			case 'variable':
@@ -2804,6 +2895,16 @@ spriter.Pose.prototype.strike = function ()
 				}
 				break;
 			case 'point':
+				var bone = pose_bone_array[object.parent_index];
+				if (bone)
+				{
+					spriter.Space.combine(bone.world_space, object.local_space, object.world_space);
+				}
+				else
+				{
+					object.world_space.copy(object.local_space);
+				}
+				break;
 			case 'sound':
 			case 'entity':
 			case 'variable':

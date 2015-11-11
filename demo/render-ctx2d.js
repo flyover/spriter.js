@@ -179,6 +179,12 @@ renderCtx2D.prototype.drawDebugPose = function (spriter_pose, atlas_data)
 				ctx.restore();
 			}
 			break;
+		case 'point':
+			ctx.save();
+			ctxApplySpace(ctx, object.world_space);
+			ctxDrawPoint(ctx);
+			ctx.restore();
+			break;
 		}
 	});
 }
