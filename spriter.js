@@ -1318,7 +1318,7 @@ spriter.SpriteObject.prototype.copy = function (other)
 spriter.SpriteObject.prototype.tween = function (other, tween, spin)
 {
 	spriter.Space.tween(this.local_space, other.local_space, tween, spin, this.local_space);
-	spriter.Vector.tween(this.pivot, other.pivot, tween, this.pivot);
+	//spriter.Vector.tween(this.pivot, other.pivot, tween, this.pivot);
 	this.alpha = spriter.tween(this.alpha, other.alpha, tween);
 }
 
