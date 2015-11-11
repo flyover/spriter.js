@@ -892,31 +892,56 @@ spriter.Element.prototype.load = function (json)
 /**
  * @constructor
  * @extends {spriter.Element}
+ * @param {string} type
  */
-spriter.File = function ()
+spriter.File = function (type)
 {
-	var file = this;
-	file.pivot = new spriter.Pivot();
+	goog.base(this);
+	this.type = type;
 }
 
 goog.inherits(spriter.File, spriter.Element);
 
-/** @type {number} */
-spriter.File.prototype.id = -1;
 /** @type {string} */
-spriter.File.prototype.name = "";
-/** @type {number} */
-spriter.File.prototype.width = 0;
-/** @type {number} */
-spriter.File.prototype.height = 0;
-/** @type {spriter.Pivot} */
-spriter.File.prototype.pivot;
+spriter.File.prototype.type = "unknown";
 
 /**
  * @return {spriter.File} 
  * @param {Object.<string,?>} json 
  */
 spriter.File.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	//var type = spriter.loadString(json, 'type', "image");
+	//if (this.type !== type) throw new Error();
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.File}
+ */
+spriter.ImageFile = function ()
+{
+	var file = this;
+	goog.base(this, 'image');
+	file.pivot = new spriter.Pivot();
+}
+
+goog.inherits(spriter.ImageFile, spriter.File);
+
+/** @type {number} */
+spriter.ImageFile.prototype.width = 0;
+/** @type {number} */
+spriter.ImageFile.prototype.height = 0;
+/** @type {spriter.Pivot} */
+spriter.ImageFile.prototype.pivot;
+
+/**
+ * @return {spriter.ImageFile} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.ImageFile.prototype.load = function (json)
 {
 	var file = this;
 	goog.base(this, 'load', json);
@@ -955,7 +980,13 @@ spriter.Folder.prototype.load = function (json)
 	json.file = spriter.makeArray(json.file);
 	json.file.forEach(function (file_json)
 	{
-		folder.file_array.push(new spriter.File().load(file_json));
+		switch (file_json.type)
+		{
+		case 'image':
+		default:
+			folder.file_array.push(new spriter.ImageFile().load(file_json));
+			break;
+		}
 	});
 	return folder;
 }

@@ -165,7 +165,7 @@ main.start = function ()
 						{
 							if (err)
 							{
-								console.log("error loading:", image.src);
+								console.log("error loading:", image && image.src || page.name);
 							}
 							page.w = page.w || image.width;
 							page.h = page.h || image.height;
@@ -179,16 +179,25 @@ main.start = function ()
 					{
 						folder.file_array.forEach(function (file)
 						{
-							var image_key = file.name;
-							counter_inc();
-							var image = images[image_key] = loadImage(file_path + file.name, function (err, image)
+							switch (file.type)
 							{
-								if (err)
+							case 'image':
+								var image_key = file.name;
+								counter_inc();
+								var image = images[image_key] = loadImage(file_path + file.name, (function (file) { return function (err, image)
 								{
-									console.log("error loading:", image.src);
-								}
-								counter_dec();
-							});
+									if (err)
+									{
+										console.log("error loading:", image && image.src || file.name);
+									}
+									counter_dec();
+								}})(file));
+								break;
+							case 'sound':
+							default:
+								console.log("TODO: load", file.type, file.name);
+								break;
+							}
 						});
 					});
 				}
@@ -210,6 +219,7 @@ main.start = function ()
 	}
 
 	add_file("GreyGuy/", "player.scon", "player.tps.json");
+	add_file("GreyGuyPlus/", "player_006.scon", "player_006.tps.json");
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/brawler/", "brawler.scml");
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/imp/", "imp.scml");
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/mage/", "mage.scml");
@@ -280,8 +290,10 @@ main.start = function ()
 							return;
 						}
 					}
+					var entity_keys = spriter_pose.getEntityKeys();
 					spriter_pose.setEntity(entity_keys[entity_index]);
 				}
+				var anim_keys = spriter_pose.getAnimKeys();
 				spriter_pose.setAnim(anim_keys[anim_index]);
 				spriter_pose.setTime(anim_time = 0);
 				anim_length = spriter_pose.curAnimLength() || 1000;

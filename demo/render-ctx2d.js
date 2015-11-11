@@ -64,23 +64,28 @@ renderCtx2D.prototype.drawPose = function (spriter_pose, atlas_data)
 
 	spriter_pose.object_array.forEach(function (object)
 	{
-		var folder = spriter_pose.data.folder_array[object.folder_index];
-		if (!folder) { return; }
-		var file = folder.file_array[object.file_index];
-		if (!file) { return; }
-		var site = atlas_data && atlas_data.sites[file.name];
-		var page = site && atlas_data.pages[site.page];
-		var image_key = (page && page.name) || file.name;
-		var image = images[image_key];
-		if (image && image.complete)
+		switch (object.type)
 		{
-			ctx.save();
-			ctxApplySpace(ctx, object.world_space);
-			ctx.scale(file.width/2, file.height/2);
-			ctxApplyAtlasSitePosition(ctx, site);
-			ctx.globalAlpha = object.alpha;
-			ctxDrawImageMesh(ctx, triangles, positions, texcoords, image, site, page);
-			ctx.restore();
+		case 'sprite':
+			var folder = spriter_pose.data.folder_array[object.folder_index];
+			if (!folder) { return; }
+			var file = folder.file_array[object.file_index];
+			if (!file) { return; }
+			var site = atlas_data && atlas_data.sites[file.name];
+			var page = site && atlas_data.pages[site.page];
+			var image_key = (page && page.name) || file.name;
+			var image = images[image_key];
+			if (image && image.complete)
+			{
+				ctx.save();
+				ctxApplySpace(ctx, object.world_space);
+				ctx.scale(file.width/2, file.height/2);
+				ctxApplyAtlasSitePosition(ctx, site);
+				ctx.globalAlpha = object.alpha;
+				ctxDrawImageMesh(ctx, triangles, positions, texcoords, image, site, page);
+				ctx.restore();
+			}
+			break;
 		}
 	});
 }
@@ -110,21 +115,26 @@ renderCtx2D.prototype.drawDebugPose = function (spriter_pose, atlas_data)
 
 	spriter_pose.object_array.forEach(function (object)
 	{
-		var folder = spriter_pose.data.folder_array[object.folder_index];
-		if (!folder) { return; }
-		var file = folder.file_array[object.file_index];
-		if (!file) { return; }
-		var site = atlas_data && atlas_data.sites[file.name];
-		var page = site && atlas_data.pages[site.page];
-		var image_key = (page && page.name) || file.name;
-		var image = images[image_key];
-		ctx.save();
-		ctxApplySpace(ctx, object.world_space);
-		ctx.scale(file.width/2, file.height/2);
-		ctx.lineWidth = 1 / Math.min(file.width/2, file.height/2);
-		ctxApplyAtlasSitePosition(ctx, site);
-		ctxDrawMesh(ctx, triangles, positions);
-		ctx.restore();
+		switch (object.type)
+		{
+		case 'sprite':
+			var folder = spriter_pose.data.folder_array[object.folder_index];
+			if (!folder) { return; }
+			var file = folder.file_array[object.file_index];
+			if (!file) { return; }
+			var site = atlas_data && atlas_data.sites[file.name];
+			var page = site && atlas_data.pages[site.page];
+			var image_key = (page && page.name) || file.name;
+			var image = images[image_key];
+			ctx.save();
+			ctxApplySpace(ctx, object.world_space);
+			ctx.scale(file.width/2, file.height/2);
+			ctx.lineWidth = 1 / Math.min(file.width/2, file.height/2);
+			ctxApplyAtlasSitePosition(ctx, site);
+			ctxDrawMesh(ctx, triangles, positions);
+			ctx.restore();
+			break;
+		}
 	});
 }
 
