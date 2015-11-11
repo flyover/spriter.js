@@ -1488,6 +1488,69 @@ spriter.PointObject.prototype.tween = function (other, tween, spin)
 
 /**
  * @constructor
+ * @extends {spriter.Object}
+ */
+spriter.SoundObject = function ()
+{
+	goog.base(this, 'sound');
+}
+
+goog.inherits(spriter.SoundObject, spriter.Object);
+
+/** @type {number} */
+spriter.SoundObject.prototype.folder_index = -1;
+/** @type {number} */
+spriter.SoundObject.prototype.file_index = -1;
+/** @type {boolean} */
+spriter.SoundObject.prototype.trigger = false;
+/** @type {number} */
+spriter.SoundObject.prototype.volume = 1.0;
+/** @type {number} */
+spriter.SoundObject.prototype.panning = 0.0;
+
+/**
+ * @return {spriter.SoundObject} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.SoundObject.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	this.folder_index = spriter.loadInt(json, 'folder', -1);
+	this.file_index = spriter.loadInt(json, 'file', -1);
+	this.trigger = spriter.loadBool(json, 'trigger', false);
+	this.volume = spriter.loadFloat(json, 'volume', 1.0);
+	this.panning = spriter.loadFloat(json, 'panning', 0.0);
+	return this;
+}
+
+/**
+ * @return {spriter.SoundObject}
+ * @param {spriter.SoundObject} other
+ */
+spriter.SoundObject.prototype.copy = function (other)
+{
+	this.folder_index = other.folder_index;
+	this.file_index = other.file_index;
+	this.trigger = other.trigger;
+	this.volume = other.volume;
+	this.panning = other.panning;
+	return this;
+}
+
+/**
+ * @return {void}
+ * @param {spriter.SoundObject} other
+ * @param {number} tween
+ * @param {number} spin
+ */
+spriter.SoundObject.prototype.tween = function (other, tween, spin)
+{
+	this.volume = spriter.tween(this.volume, other.volume, tween);
+	this.panning = spriter.tween(this.panning, other.panning, tween);
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  */
 spriter.Ref = function ()
