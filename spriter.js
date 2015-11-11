@@ -2457,6 +2457,66 @@ spriter.Timeline.prototype.load = function (json)
 
 /**
  * @constructor
+ * @extends {spriter.Keyframe}
+ */
+spriter.SoundlineKeyframe = function ()
+{
+	goog.base(this);
+}
+
+goog.inherits(spriter.SoundlineKeyframe, spriter.Keyframe);
+
+/** @type {spriter.SoundObject} */
+spriter.SoundlineKeyframe.prototype.sound;
+
+/**
+ * @return {spriter.SoundlineKeyframe} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.SoundlineKeyframe.prototype.load = function (json)
+{
+	goog.base(this, 'load', json);
+	this.sound = new spriter.SoundObject().load(json.object || {});
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Element}
+ */
+spriter.Soundline = function ()
+{
+	goog.base(this);
+}
+
+goog.inherits(spriter.Soundline, spriter.Element);
+
+/** @type {Array.<spriter.SoundlineKeyframe>} */
+spriter.Soundline.prototype.keyframe_array;
+
+/**
+ * @return {spriter.Soundline} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.Soundline.prototype.load = function (json)
+{
+	var soundline = this;
+
+	goog.base(this, 'load', json);
+
+	soundline.keyframe_array = [];
+	json.key = spriter.makeArray(json.key);
+	json.key.forEach(function (key_json)
+	{
+		soundline.keyframe_array.push(new spriter.SoundlineKeyframe().load(key_json));
+	});
+	soundline.keyframe_array = soundline.keyframe_array.sort(spriter.Keyframe.compare);
+
+	return soundline;
+}
+
+/**
+ * @constructor
  * @extends {spriter.Element}
  * @param {string} type
  */
@@ -2756,6 +2816,8 @@ spriter.Animation.prototype.loop_to = 0;
 spriter.Animation.prototype.mainline;
 /** @type {Array.<spriter.Timeline>} */
 spriter.Animation.prototype.timeline_array;
+/** @type {Array.<spriter.Soundline>} */
+spriter.Animation.prototype.soundline_array;
 /** @type {spriter.Meta} */
 spriter.Animation.prototype.meta;
 /** @type {number} */
@@ -2784,6 +2846,13 @@ spriter.Animation.prototype.load = function (json)
 	json.timeline.forEach(function (timeline_json)
 	{
 		anim.timeline_array.push(new spriter.Timeline().load(timeline_json));
+	});
+
+	anim.soundline_array = [];
+	json.soundline = spriter.makeArray(json.soundline);
+	json.soundline.forEach(function (soundline_json)
+	{
+		anim.soundline_array.push(new spriter.Soundline().load(soundline_json));
 	});
 
 	if (json.meta)
@@ -3043,6 +3112,7 @@ spriter.Pose = function (data)
 
 	this.bone_array = [];
 	this.object_array = [];
+	this.sound_array = [];
 	this.tag_array = [];
 	this.var_map = {};
 }
@@ -3067,6 +3137,9 @@ spriter.Pose.prototype.bone_array;
 
 /** @type {Array.<spriter.Object>} */
 spriter.Pose.prototype.object_array;
+
+/** @type {Array.<Object>} */
+spriter.Pose.prototype.sound_array;
 
 /** @type {Array.<string>} */
 spriter.Pose.prototype.tag_array;
@@ -3524,6 +3597,27 @@ spriter.Pose.prototype.strike = function ()
 				throw new Error(object.type);
 			}
 		});
+
+		// process soundlines
+		pose.sound_array = [];
+		anim.soundline_array.forEach(function (soundline)
+		{
+			var keyframe_array = soundline.keyframe_array;
+			var keyframe_index = spriter.Keyframe.find(keyframe_array, time);
+			if (keyframe_index !== -1)
+			{
+				var keyframe = keyframe_array[keyframe_index];
+				if (((elapsed_time < 0) && ((time <= keyframe.time) && (keyframe.time <= prev_time))) ||
+					((elapsed_time > 0) && ((prev_time <= keyframe.time) && (keyframe.time <= time))))
+				{
+					var folder = pose.data.folder_array[keyframe.sound.folder_index];
+					var file = folder && folder.file_array[keyframe.sound.file_index];
+					//console.log(prev_time, keyframe.time, time, "sound", file.name);
+					pose.sound_array.push({ name: file.name, volume: keyframe.sound.volume, panning: keyframe.sound.panning });
+				}
+			}
+		});
+
 		if (anim.meta)
 		{
 			// process tagline
