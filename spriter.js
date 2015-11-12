@@ -1129,85 +1129,6 @@ spriter.Folder.prototype.load = function (json)
 
 /**
  * @constructor
- */
-spriter.Bone = function ()
-{
-	var bone = this;
-	bone.local_space = new spriter.Space();
-	bone.world_space = new spriter.Space();
-}
-
-/** @type {string} */
-spriter.Bone.prototype.name = "";
-/** @type {number} */
-spriter.Bone.prototype.parent_index = -1;
-/** @type {spriter.Space} */
-spriter.Bone.prototype.local_space;
-/** @type {spriter.Space} */
-spriter.Bone.prototype.world_space;
-
-/**
- * @return {spriter.Bone} 
- * @param {Object.<string,?>} json 
- */
-spriter.Bone.prototype.load = function (json)
-{
-	this.parent_index = spriter.loadInt(json, 'parent', -1);
-	this.local_space.load(json);
-	this.world_space.copy(this.local_space);
-	return this;
-}
-
-/**
- * @return {spriter.Bone}
- * @param {spriter.Bone} other
- */
-spriter.Bone.prototype.copy = function (other)
-{
-	this.parent_index = other.parent_index;
-	this.local_space.copy(other.local_space);
-	this.world_space.copy(other.world_space);
-	return this;
-}
-
-/**
- * @return {void}
- * @param {spriter.Bone} other
- * @param {number} tween
- * @param {number} spin
- */
-spriter.Bone.prototype.tween = function (other, tween, spin)
-{
-	spriter.Space.tween(this.local_space, other.local_space, tween, spin, this.local_space);
-}
-
-/**
- * @return {spriter.Space}
- * @param {spriter.Bone} bone 
- * @param {Array.<spriter.Bone>} bones 
- * @param {spriter.Space=} out 
- */
-spriter.Bone.flatten = function (bone, bones, out)
-{
-	out = out || new spriter.Space();
-
-	var parent_bone = bones[bone.parent_index];
-	if (parent_bone)
-	{
-		spriter.Bone.flatten(parent_bone, bones, out);
-	}
-	else
-	{
-		spriter.Space.identity(out);
-	}
-
-	spriter.Space.combine(out, bone.local_space, out);
-
-	return out;
-}
-
-/**
- * @constructor
  * @param {string} type
  */
 spriter.Object = function (type)
@@ -1326,27 +1247,27 @@ spriter.SpriteObject.prototype.tween = function (other, tween, spin)
  * @constructor
  * @extends {spriter.Object}
  */
-spriter.BoneObject = function ()
+spriter.Bone = function ()
 {
 	goog.base(this, 'bone');
 	this.local_space = new spriter.Space();
 	this.world_space = new spriter.Space();
 }
 
-goog.inherits(spriter.BoneObject, spriter.Object);
+goog.inherits(spriter.Bone, spriter.Object);
 
 /** @type {number} */
-spriter.BoneObject.prototype.parent_index = -1;
+spriter.Bone.prototype.parent_index = -1;
 /** @type {spriter.Space} */
-spriter.BoneObject.prototype.local_space;
+spriter.Bone.prototype.local_space;
 /** @type {spriter.Space} */
-spriter.BoneObject.prototype.world_space;
+spriter.Bone.prototype.world_space;
 
 /**
- * @return {spriter.BoneObject} 
+ * @return {spriter.Bone} 
  * @param {Object.<string,?>} json 
  */
-spriter.BoneObject.prototype.load = function (json)
+spriter.Bone.prototype.load = function (json)
 {
 	goog.base(this, 'load', json);
 	this.parent_index = spriter.loadInt(json, 'parent', -1);
@@ -1356,15 +1277,26 @@ spriter.BoneObject.prototype.load = function (json)
 }
 
 /**
- * @return {spriter.BoneObject}
- * @param {spriter.BoneObject} other
+ * @return {spriter.Bone}
+ * @param {spriter.Bone} other
  */
-spriter.BoneObject.prototype.copy = function (other)
+spriter.Bone.prototype.copy = function (other)
 {
 	this.parent_index = other.parent_index;
 	this.local_space.copy(other.local_space);
 	this.world_space.copy(other.world_space);
 	return this;
+}
+
+/**
+ * @return {void}
+ * @param {spriter.Bone} other
+ * @param {number} tween
+ * @param {number} spin
+ */
+spriter.Bone.prototype.tween = function (other, tween, spin)
+{
+	spriter.Space.tween(this.local_space, other.local_space, tween, spin, this.local_space);
 }
 
 /**
@@ -1987,7 +1919,7 @@ spriter.BoneTimelineKeyframe = function ()
 
 goog.inherits(spriter.BoneTimelineKeyframe, spriter.TimelineKeyframe);
 
-/** @type {spriter.BoneObject} */
+/** @type {spriter.Bone} */
 spriter.BoneTimelineKeyframe.prototype.bone;
 
 /**
@@ -1997,7 +1929,7 @@ spriter.BoneTimelineKeyframe.prototype.bone;
 spriter.BoneTimelineKeyframe.prototype.load = function (json)
 {
 	goog.base(this, 'load', json);
-	this.bone = new spriter.BoneObject().load(json.bone || {});
+	this.bone = new spriter.Bone().load(json.bone || {});
 	return this;
 }
 
@@ -2760,6 +2692,65 @@ spriter.StringVarDef.prototype.load = function (json)
 /**
  * @constructor
  * @extends {spriter.Element}
+ */
+spriter.VarDefs = function ()
+{
+	goog.base(this);
+}
+
+goog.inherits(spriter.VarDefs, spriter.Element);
+
+/** @type {Array.<spriter.VarDef>} */
+spriter.VarDefs.prototype.var_def_array;
+
+/**
+ * @return {spriter.VarDefs} 
+ * @param {Object.<string,?>} json 
+ */
+spriter.VarDefs.prototype.load = function (json)
+{
+	var var_defs = this;
+
+	goog.base(this, 'load', json);
+
+	this.var_def_array = [];
+	var json_var_def_array = [];
+	if (typeof(json.i) === 'object')
+	{
+		// in SCML files, json.i is an object or array of objects
+		json_var_def_array = spriter.makeArray(json.i);
+	}
+	else if ((typeof(json) === 'object') && (typeof(json.length) === 'number'))
+	{
+		// in SCON files, json is an array
+		json_var_def_array = spriter.makeArray(json);
+	}
+	json_var_def_array.forEach(function (var_defs_json)
+	{
+		switch (var_defs_json.type)
+		{
+		case 'int':
+			var_defs.var_def_array.push(new spriter.IntVarDef().load(var_defs_json));
+			break;
+		case 'float':
+			var_defs.var_def_array.push(new spriter.FloatVarDef().load(var_defs_json));
+			break;
+		case 'string':
+			var_defs.var_def_array.push(new spriter.StringVarDef().load(var_defs_json));
+			break;
+		default:
+			console.log("TODO: spriter.VarDefs.load", var_defs_json.type, var_defs_json);
+			var_defs.var_def_array.push(new spriter.VarDef(var_defs_json.type).load(var_defs_json));
+			break;
+		}
+	});
+
+	return this;
+}
+
+/**
+ * @constructor
+ * @extends {spriter.Element}
  * @param {string} type
  */
 spriter.ObjInfo = function (type)
@@ -2772,8 +2763,8 @@ goog.inherits(spriter.ObjInfo, spriter.Element);
 
 /** @type {string} */
 spriter.ObjInfo.prototype.type = "unknown";
-/** @type {Array.<spriter.VarDef>} */
-spriter.ObjInfo.prototype.var_def_array;
+/** @type {spriter.VarDefs} */
+spriter.ObjInfo.prototype.var_defs;
 
 /**
  * @return {spriter.ObjInfo} 
@@ -2788,27 +2779,7 @@ spriter.ObjInfo.prototype.load = function (json)
 	//var type = spriter.loadString(json, 'type', "unknown");
 	//if (this.type !== type) throw new Error();
 
-	this.var_def_array = [];
-	json.var_defs = spriter.makeArray(json.var_defs);
-	json.var_defs.forEach(function (var_defs_json)
-	{
-		switch (var_defs_json.type)
-		{
-		case 'int':
-			obj_info.var_def_array.push(new spriter.IntVarDef().load(var_defs_json));
-			break;
-		case 'float':
-			obj_info.var_def_array.push(new spriter.FloatVarDef().load(var_defs_json));
-			break;
-		case 'string':
-			obj_info.var_def_array.push(new spriter.StringVarDef().load(var_defs_json));
-			break;
-		default:
-			console.log("TODO: spriter.Entity.load", var_defs_json.type, var_defs_json);
-			obj_info.var_def_array.push(new spriter.VarDef(var_defs_json.type).load(var_defs_json));
-			break;
-		}
-	});
+	this.var_defs = new spriter.VarDefs().load(json.var_defs || {});
 
 	return this;
 }
@@ -3021,8 +2992,8 @@ goog.inherits(spriter.Entity, spriter.Element);
 spriter.Entity.prototype.character_map_map;
 /** @type {Array.<string>} */
 spriter.Entity.prototype.character_map_keys;
-/** @type {Array.<spriter.VarDef>} */
-spriter.Entity.prototype.var_def_array;
+/** @type {spriter.VarDefs} */
+spriter.Entity.prototype.var_defs;
 /** @type {Object.<string,spriter.ObjInfo>} */
 spriter.Entity.prototype.obj_info_map;
 /** @type {Array.<string>} */
@@ -3052,27 +3023,7 @@ spriter.Entity.prototype.load = function (json)
 		entity.character_map_keys.push(character_map.name);
 	});
 
-	entity.var_def_array = [];
-	json.var_defs = spriter.makeArray(json.var_defs);
-	json.var_defs.forEach(function (var_defs_json)
-	{
-		switch (var_defs_json.type)
-		{
-		case 'int':
-			entity.var_def_array.push(new spriter.IntVarDef().load(var_defs_json));
-			break;
-		case 'float':
-			entity.var_def_array.push(new spriter.FloatVarDef().load(var_defs_json));
-			break;
-		case 'string':
-			entity.var_def_array.push(new spriter.StringVarDef().load(var_defs_json));
-			break;
-		default:
-			console.log("TODO: spriter.Entity.load", var_defs_json.type, var_defs_json);
-			entity.var_def_array.push(new spriter.VarDef(var_defs_json.type).load(var_defs_json));
-			break;
-		}
-	});
+	this.var_defs = new spriter.VarDefs().load(json.var_defs || {});
 
 	entity.obj_info_map = {};
 	entity.obj_info_keys = [];
@@ -3489,7 +3440,7 @@ spriter.Pose.prototype.strike = function ()
 	var entity = pose.curEntity();
 
 	pose.var_map = pose.var_map || {};
-	entity.var_def_array.forEach(function (var_def)
+	entity.var_defs.var_def_array.forEach(function (var_def)
 	{
 		if (!(var_def.name in pose.var_map))
 		{
@@ -3612,7 +3563,7 @@ spriter.Pose.prototype.strike = function ()
 				pose_sprite.parent_index = data_object.parent_index; // set parent from object_ref
 				break;
 			case 'bone':
-				var pose_bone = pose_object_array[object_index] = (pose_object_array[object_index] || new spriter.BoneObject());
+				var pose_bone = pose_object_array[object_index] = (pose_object_array[object_index] || new spriter.Bone());
 				pose_bone.copy(timeline_keyframe1.bone).tween(timeline_keyframe2.bone, tween, timeline_keyframe1.spin);
 				pose_bone.name = timeline.name; // set name from timeline
 				pose_bone.parent_index = data_object.parent_index; // set parent from object_ref
@@ -3878,7 +3829,7 @@ spriter.Pose.prototype.strike = function ()
 						tween = (time - time1) / (time2 - time1);
 						// TODO: tween = keyframe1.curve.evaluate(tween);
 					}
-					var var_def = entity.var_def_array[varline.var_def_index];
+					var var_def = entity.var_defs.var_def_array[varline.var_def_index];
 					var val = 0;
 					switch (var_def.type)
 					{
