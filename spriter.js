@@ -77,7 +77,7 @@ spriter.loadFloat = function (json, key, def)
 	{
 	case 'string': return parseFloat(value);
 	case 'number': return value;
-	default: return def || 0;
+	default: return def || 0.0;
 	}
 }
 
@@ -369,13 +369,13 @@ spriter.tween = function (a, b, t)
  */
 spriter.wrapAngleRadians = function (angle)
 {
-	if (angle <= 0)
+	if (angle <= 0.0)
 	{
-		return ((angle - Math.PI) % (2*Math.PI)) + Math.PI;
+		return ((angle - Math.PI) % (2.0*Math.PI)) + Math.PI;
 	}
 	else
 	{
-		return ((angle + Math.PI) % (2*Math.PI)) - Math.PI;
+		return ((angle + Math.PI) % (2.0*Math.PI)) - Math.PI;
 	}
 }
 
@@ -394,16 +394,16 @@ spriter.tweenAngleRadians = function (a, b, t, spin)
 	}
 	else if (spin > 0)
 	{
-		if ((b - a) < 0)
+		if ((b - a) < 0.0)
 		{
-			b += 2*Math.PI;
+			b += 2.0*Math.PI;
 		}
 	}
 	else if (spin < 0)
 	{
-		if ((b - a) > 0)
+		if ((b - a) > 0.0)
 		{
-			b -= 2*Math.PI;
+			b -= 2.0*Math.PI;
 		}
 	}
 
@@ -416,7 +416,7 @@ spriter.tweenAngleRadians = function (a, b, t, spin)
  */
 spriter.Angle = function (rad)
 {
-	this.rad = rad || 0;
+	this.rad = rad || 0.0;
 }
 
 Object.defineProperty(spriter.Angle.prototype, 'deg', 
@@ -444,7 +444,7 @@ Object.defineProperty(spriter.Angle.prototype, 'sin',
  */
 spriter.Angle.prototype.selfIdentity = function ()
 {
-	this.rad = 0;
+	this.rad = 0.0;
 	return this;
 }
 
@@ -535,14 +535,14 @@ spriter.Angle.prototype.selfTween = function (other, pct, spin)
  */
 spriter.Vector = function (x, y)
 {
-	this.x = x || 0;
-	this.y = y || 0;
+	this.x = x || 0.0;
+	this.y = y || 0.0;
 }
 
 /** @type {number} */
-spriter.Vector.prototype.x = 0;
+spriter.Vector.prototype.x = 0.0;
 /** @type {number} */
-spriter.Vector.prototype.y = 0;
+spriter.Vector.prototype.y = 0.0;
 
 /**
  * @return {spriter.Vector}
@@ -633,7 +633,7 @@ spriter.Vector.prototype.selfTween = function (other, pct)
  */
 spriter.Position = function ()
 {
-	goog.base(this, 0, 0);
+	goog.base(this, 0.0, 0.0);
 }
 
 goog.inherits(spriter.Position, spriter.Vector);
@@ -644,7 +644,7 @@ goog.inherits(spriter.Position, spriter.Vector);
  */
 spriter.Rotation = function ()
 {
-	goog.base(this, 0);
+	goog.base(this, 0.0);
 }
 
 goog.inherits(spriter.Rotation, spriter.Angle);
@@ -655,7 +655,7 @@ goog.inherits(spriter.Rotation, spriter.Angle);
  */
 spriter.Scale = function ()
 {
-	goog.base(this, 1, 1);
+	goog.base(this, 1.0, 1.0);
 }
 
 goog.inherits(spriter.Scale, spriter.Vector);
@@ -665,8 +665,8 @@ goog.inherits(spriter.Scale, spriter.Vector);
  */
 spriter.Scale.prototype.selfIdentity = function ()
 {
-	this.x = 1;
-	this.y = 1;
+	this.x = 1.0;
+	this.y = 1.0;
 	return this;
 }
 
@@ -676,7 +676,7 @@ spriter.Scale.prototype.selfIdentity = function ()
  */
 spriter.Pivot = function ()
 {
-	goog.base(this, 0, 1);
+	goog.base(this, 0.0, 1.0);
 }
 
 goog.inherits(spriter.Pivot, spriter.Vector);
@@ -686,8 +686,8 @@ goog.inherits(spriter.Pivot, spriter.Vector);
  */
 spriter.Pivot.prototype.selfIdentity = function ()
 {
-	this.x = 0;
-	this.y = 1;
+	this.x = 0.0;
+	this.y = 1.0;
 	return this;
 }
 
@@ -729,11 +729,11 @@ spriter.Space.prototype.copy = function (other)
 spriter.Space.prototype.load = function (json)
 {
 	var space = this;
-	space.position.x = spriter.loadFloat(json, 'x', 0);
-	space.position.y = spriter.loadFloat(json, 'y', 0);
-	space.rotation.deg = spriter.loadFloat(json, 'angle', 0);
-	space.scale.x = spriter.loadFloat(json, 'scale_x', 1);
-	space.scale.y = spriter.loadFloat(json, 'scale_y', 1);
+	space.position.x = spriter.loadFloat(json, 'x', 0.0);
+	space.position.y = spriter.loadFloat(json, 'y', 0.0);
+	space.rotation.deg = spriter.loadFloat(json, 'angle', 0.0);
+	space.scale.x = spriter.loadFloat(json, 'scale_x', 1.0);
+	space.scale.y = spriter.loadFloat(json, 'scale_y', 1.0);
 	return space;
 }
 
@@ -761,11 +761,11 @@ spriter.Space.equal = function (a, b, epsilon)
 spriter.Space.identity = function (out)
 {
 	out = out || new spriter.Space();
-	out.position.x = 0;
-	out.position.y = 0;
-	out.rotation.rad = 0;
-	out.scale.x = 1;
-	out.scale.y = 1;
+	out.position.x = 0.0;
+	out.position.y = 0.0;
+	out.rotation.rad = 0.0;
+	out.scale.x = 1.0;
+	out.scale.y = 1.0;
 	return out;
 }
 
@@ -826,8 +826,8 @@ spriter.Space.invert = function (space, out)
 	// out.pos = space.pos.neg().rotate(space.rot.inv()).mul(space.sca.inv());
 
 	out = out || new spriter.Space();
-	var inv_scale_x = 1 / space.scale.x;
-	var inv_scale_y = 1 / space.scale.y;
+	var inv_scale_x = 1.0 / space.scale.x;
+	var inv_scale_y = 1.0 / space.scale.y;
 	var inv_rotation = -space.rotation.rad;
 	var inv_x = -space.position.x;
 	var inv_y = -space.position.y;
@@ -869,7 +869,7 @@ spriter.Space.combine = function (a, b, out)
 	var ty = s*x + c*y;
 	out.position.x = tx + a.position.x;
 	out.position.y = ty + a.position.y;
-	if ((a.scale.x * a.scale.y) < 0)
+	if ((a.scale.x * a.scale.y) < 0.0)
 	{
 		out.rotation.rad = spriter.wrapAngleRadians(a.rotation.rad - b.rotation.rad);
 	}
@@ -898,7 +898,7 @@ spriter.Space.extract = function (ab, a, out)
 	out = out || new spriter.Space();
 	out.scale.x = ab.scale.x / a.scale.x;
 	out.scale.y = ab.scale.y / a.scale.y;
-	if ((a.scale.x * a.scale.y) < 0)
+	if ((a.scale.x * a.scale.y) < 0.0)
 	{
 		out.rotation.rad = spriter.wrapAngleRadians(a.rotation.rad + ab.rotation.rad);
 	}
@@ -1059,8 +1059,8 @@ spriter.ImageFile.prototype.load = function (json)
 	goog.base(this, 'load', json);
 	file.width = spriter.loadInt(json, 'width', 0);
 	file.height = spriter.loadInt(json, 'height', 0);
-	file.pivot.x = spriter.loadFloat(json, 'pivot_x', 0);
-	file.pivot.y = spriter.loadFloat(json, 'pivot_y', 1);
+	file.pivot.x = spriter.loadFloat(json, 'pivot_x', 0.0);
+	file.pivot.y = spriter.loadFloat(json, 'pivot_y', 1.0);
 	return file;
 }
 
@@ -1200,8 +1200,8 @@ spriter.SpriteObject.prototype.load = function (json)
 	if ((typeof(json['pivot_x']) !== 'undefined') || 
 		(typeof(json['pivot_y']) !== 'undefined'))
 	{
-		this.pivot.x = spriter.loadFloat(json, 'pivot_x', 0);
-		this.pivot.y = spriter.loadFloat(json, 'pivot_y', 1);
+		this.pivot.x = spriter.loadFloat(json, 'pivot_x', 0.0);
+		this.pivot.y = spriter.loadFloat(json, 'pivot_y', 1.0);
 	}
 	else
 	{
@@ -1332,8 +1332,8 @@ spriter.BoxObject.prototype.load = function (json)
 	this.parent_index = spriter.loadInt(json, 'parent', -1);
 	this.local_space.load(json);
 	this.world_space.copy(this.local_space);
-	this.pivot.x = spriter.loadFloat(json, 'pivot_x', 0);
-	this.pivot.y = spriter.loadFloat(json, 'pivot_y', 1);
+	this.pivot.x = spriter.loadFloat(json, 'pivot_x', 0.0);
+	this.pivot.y = spriter.loadFloat(json, 'pivot_y', 1.0);
 	return this;
 }
 
@@ -1758,7 +1758,7 @@ spriter.Curve.prototype.evaluate = function (t)
 {
 	switch (this.type)
 	{
-	case "instant": return 0;
+	case "instant": return 0.0;
 	case "linear": return t;
 	case "quadratic": return spriter.interpolateQuadratic(0.0, this.c1, 1.0, t);
 	case "cubic": return spriter.interpolateCubic(0.0, this.c1, this.c2, 1.0, t);
@@ -1766,7 +1766,7 @@ spriter.Curve.prototype.evaluate = function (t)
 	case "quintic": return spriter.interpolateQuintic(0.0, this.c1, this.c2, this.c3, this.c4, 1.0, t);
 	case "bezier": return spriter.interpolateBezier(this.c1, this.c2, this.c3, this.c4, t);
 	}
-	return 0;
+	return 0.0;
 }
 
 /**
@@ -2200,7 +2200,7 @@ spriter.VarlineKeyframe.prototype.load = function (json)
 	switch (typeof(json.val))
 	{
 	case 'number':
-		varline_keyframe.val = spriter.loadFloat(json, 'val', 0);
+		varline_keyframe.val = spriter.loadFloat(json, 'val', 0.0);
 		break;
 	case 'string':
 		varline_keyframe.val = spriter.loadString(json, 'val', "");
@@ -2853,9 +2853,9 @@ spriter.BoneObjInfo = function ()
 goog.inherits(spriter.BoneObjInfo, spriter.ObjInfo);
 
 /** @type {number} */
-spriter.BoneObjInfo.prototype.w = 0.0;
+spriter.BoneObjInfo.prototype.w = 0;
 /** @type {number} */
-spriter.BoneObjInfo.prototype.h = 0.0;
+spriter.BoneObjInfo.prototype.h = 0;
 
 /**
  * @return {spriter.BoneObjInfo} 
@@ -2864,8 +2864,8 @@ spriter.BoneObjInfo.prototype.h = 0.0;
 spriter.BoneObjInfo.prototype.load = function (json)
 {
 	goog.base(this, 'load', json);
-	this.w = spriter.loadFloat(json, 'w', 0.0);
-	this.h = spriter.loadFloat(json, 'h', 0.0);
+	this.w = spriter.loadInt(json, 'w', 0);
+	this.h = spriter.loadInt(json, 'h', 0);
 	return this;
 }
 
