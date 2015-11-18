@@ -3709,6 +3709,20 @@ spriter.Pose.prototype.strike = function ()
 				{
 					object.world_space.copy(object.local_space);
 				}
+				break;
+			case 'variable':
+				break;
+			default:
+				throw new Error(object.type);
+			}
+		});
+
+		// process sub-entities
+		pose_object_array.forEach(function (object)
+		{
+			switch (object.type)
+			{
+			case 'entity':
 				var sub_pose = object.pose = object.pose || new spriter.Pose(pose.data);
 				var sub_entity_key = sub_pose.data.entity_keys[object.entity_index];
 				if (sub_entity_key !== sub_pose.getEntity())
@@ -3733,10 +3747,6 @@ spriter.Pose.prototype.strike = function ()
 				}
 				sub_pose.strike();
 				break;
-			case 'variable':
-				break;
-			default:
-				throw new Error(object.type);
 			}
 		});
 
