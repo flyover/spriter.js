@@ -19,6 +19,7 @@ https://cdn.rawgit.com/flyover/spriter.js/master/demo/index.html
 * Variables
 * Tags
 * Character maps
+* Animation Blending
 
 ## How to use it
 
@@ -36,4 +37,4 @@ var dt = 1000 / 60; // time step in milliseconds
 pose.update(dt); // accumulate time
 pose.strike(); // process time slice
 ```
-Refer to the demo for how to draw images, play sounds and respond to events.
+Refer to the demo for how to blend animations, draw images, play sounds and respond to events, access tags and variables, etc.
