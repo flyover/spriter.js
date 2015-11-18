@@ -31,6 +31,23 @@ main.start = function ()
 		controls.appendChild(control);
 	}
 
+	var add_range_control = function (text, init, min, max, step, callback)
+	{
+		var control = document.createElement('div');
+		var input = document.createElement('input');
+		input.type = 'range';
+		input.value = init;
+		input.min = min;
+		input.max = max;
+		input.step = step;
+		input.addEventListener('input', function () { callback(this.value); label.innerHTML = text + " : " + this.value; }, false);
+		control.appendChild(input);
+		var label = document.createElement('label');
+		label.innerHTML = text + " : " + init;
+		control.appendChild(label);
+		controls.appendChild(control);
+	}
+
 	var messages = document.createElement('div');
 	messages.style.position = 'absolute';
 	messages.style.left = '0px';
@@ -98,27 +115,38 @@ main.start = function ()
 
 	add_checkbox_control("2D Debug Pose", enable_render_debug_pose, function (checked) { enable_render_debug_pose = checked; });
 
+	var spriter_data = null;
 	var spriter_pose = null;
+	var spriter_pose_next = null;
 	var atlas_data = null;
 
 	var anim_time = 0;
 	var anim_length = 0;
+	var anim_length_next = 0;
 	var anim_rate = 1;
 	var anim_repeat = 2;
+
+	var anim_blend = 0.0;
+
+	add_range_control("Anim Rate", anim_rate, -2.0, 2.0, 0.1, function (value) { anim_rate = value; });
+
+	add_range_control("Anim Blend", anim_blend, 0.0, 1.0, 0.01, function (value) { anim_blend = value; });
 
 	var loadFile = function (file, callback)
 	{
 		render_ctx2d.dropPose(spriter_pose, atlas_data);
 		render_webgl.dropPose(spriter_pose, atlas_data);
+		render_webgl.dropPose(spriter_pose_next, atlas_data);
 
 		spriter_pose = null;
+		spriter_pose_next = null;
 		atlas_data = null;
 
 		var file_path = file.path;
-		var file_scon_url = file_path + file.scon_url;
+		var file_spriter_url = file_path + file.spriter_url;
 		var file_atlas_url = (file.atlas_url)?(file_path + file.atlas_url):("");
 
-		loadText(file_scon_url, function (err, text)
+		loadText(file_spriter_url, function (err, text)
 		{
 			if (err)
 			{
@@ -126,11 +154,27 @@ main.start = function ()
 				return;
 			}
 
-			//var parser = new DOMParser();
-			//var xml = parser.parseFromString(text, 'text/xml');
-			//var json_text = xml2json(xml, '\t');
+			var match = file.spriter_url.match(/\.scml$/i);
+			if (match)
+			{
+				var parser = new DOMParser();
+				// replace &quot; with \"
+				var xml_text = text.replace(/&quot;/g, "\"");
+				var xml = parser.parseFromString(xml_text, 'text/xml');
+				var json_text = xml2json(xml, '\t');
+				// attributes marked with @, replace "@(.*)": with "\1":
+				json_text = json_text.replace(/"@(.*)":/g, "\"$1\":");
+				var json = JSON.parse(json_text);
+				var spriter_json = json.spriter_data;
+				spriter_data = new spriter.Data().load(spriter_json);
+			}
+			else
+			{
+				spriter_data = new spriter.Data().load(JSON.parse(text));
+			}
 
-			spriter_pose = new spriter.Pose(new spriter.Data().load(JSON.parse(text)));
+			spriter_pose = new spriter.Pose(spriter_data);
+			spriter_pose_next = new spriter.Pose(spriter_data);
 
 			loadText(file_atlas_url, function (err, atlas_text)
 			{
@@ -144,6 +188,7 @@ main.start = function ()
 					{
 						render_ctx2d.loadPose(spriter_pose, atlas_data, images);
 						render_webgl.loadPose(spriter_pose, atlas_data, images);
+						render_webgl.loadPose(spriter_pose_next, atlas_data, images);
 						callback();
 					}
 				}
@@ -174,7 +219,7 @@ main.start = function ()
 					});
 
 					// with an atlas, still need to load the sound files
-					spriter_pose.data.folder_array.forEach(function (folder)
+					spriter_data.folder_array.forEach(function (folder)
 					{
 						folder.file_array.forEach(function (file)
 						{
@@ -192,7 +237,7 @@ main.start = function ()
 				}
 				else
 				{
-					spriter_pose.data.folder_array.forEach(function (folder)
+					spriter_data.folder_array.forEach(function (folder)
 					{
 						folder.file_array.forEach(function (file)
 						{
@@ -226,22 +271,34 @@ main.start = function ()
 
 	var files = [];
 
-	var add_file = function (path, scon_url, atlas_url)
+	var add_file = function (path, spriter_url, atlas_url)
 	{
 		var file = {};
 		file.path = path;
-		file.scon_url = scon_url;
+		file.spriter_url = spriter_url;
 		file.atlas_url = atlas_url || "";
 		files.push(file);
 	}
 
-	add_file("GreyGuy/", "player.scon", "player.tps.json");
-	add_file("GreyGuyPlus/", "player_006.scon", "player_006.tps.json");
+	//add_file("GreyGuy/", "player.scon", "player.tps.json");
+	//add_file("GreyGuyPlus/", "player_006.scon", "player_006.tps.json");
+
+	//add_file("SpriterExamples/BoxTagVariable/", "player.scon");
+	add_file("SpriterExamples/GreyGuyCharMaps/", "player_001.scon");
+	//add_file("SpriterExamples/GreyGuyPlusSoundAndSubEntity/", "player_006.scon");
+	//add_file("SpriterExamples/PointsTriggers/", "gunner_player_smaller_head.scon");
+	//add_file("SpriterExamples/Variable/", "LetterBot.scon");
+
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/brawler/", "brawler.scml");
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/imp/", "imp.scml");
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/mage/", "mage.scml");
 	//add_file("https://raw.githubusercontent.com/treefortress/SpriterAS/master/demo/src/assets/spriter/orc/", "orc.scml");
+
 	//add_file("https://raw.githubusercontent.com/Malhavok/Spriter2Unity/master/examples/Crabby/Spriter/", "Crabby.scml");
+
+	//add_file("https://raw.githubusercontent.com/loodakrawa/SpriterDotNet/master/SpriterDotNet.Unity/Assets/SpriterDotNetExamples/Scml/GreyGuy/", "player.scml");
+	//add_file("https://raw.githubusercontent.com/loodakrawa/SpriterDotNet/master/SpriterDotNet.Unity/Assets/SpriterDotNetExamples/Scml/GreyGuyPlus/", "player_006.scml");
+	//add_file("https://raw.githubusercontent.com/loodakrawa/SpriterDotNet/master/SpriterDotNet.Unity/Assets/SpriterDotNetExamples/Scml/TestSquares/", "squares.scml");
 
 	var file_index = 0;
 	var entity_index = 0;
@@ -254,12 +311,24 @@ main.start = function ()
 	loading = true; loadFile(file, function ()
 	{
 		loading = false;
-		var entity_keys = spriter_pose.getEntityKeys();
-		spriter_pose.setEntity(entity_keys[entity_index = 0]);
-		var anim_keys = spriter_pose.getAnimKeys();
-		spriter_pose.setAnim(anim_keys[anim_index = 0]);
+		var entity_keys = spriter_data.getEntityKeys();
+		var entity_key = entity_keys[entity_index = 0];
+		spriter_pose.setEntity(entity_key);
+		spriter_pose_next.setEntity(entity_key);
+		//var entity = spriter_pose.curEntity();
+		//console.log(entity.character_map_keys);
+		//spriter_pose.character_map_key_array = entity.character_map_keys;
+		//spriter_pose.character_map_key_array = [ 'glasses', 'blue gloves', 'black gloves', 'look ma no hands' ];
+		//spriter_pose.character_map_key_array = [ 'glasses', 'blue gloves' ];
+		var anim_keys = spriter_data.getAnimKeys(entity_key);
+		var anim_key = anim_keys[anim_index = 0];
+		spriter_pose.setAnim(anim_key);
+		var anim_key_next = anim_keys[(anim_index + 1) % anim_keys.length];
+		spriter_pose_next.setAnim(anim_key_next);
 		spriter_pose.setTime(anim_time = 0);
+		spriter_pose_next.setTime(anim_time);
 		anim_length = spriter_pose.curAnimLength() || 1000;
+		anim_length_next = spriter_pose.curAnimLength() || 1000;
 	});
 
 	var prev_time = 0;
@@ -273,16 +342,19 @@ main.start = function ()
 		if (!loading)
 		{
 			spriter_pose.update(dt * anim_rate);
+			var anim_rate_next = anim_rate * anim_length / anim_length_next;
+			spriter_pose_next.update(dt * anim_rate_next);
 
 			anim_time += dt * anim_rate;
 
 			if (anim_time >= (anim_length * anim_repeat))
 			{
-				var anim_keys = spriter_pose.getAnimKeys();
+				var entity_keys = spriter_data.getEntityKeys();
+				var entity_key = entity_keys[entity_index];
+				var anim_keys = spriter_data.getAnimKeys(entity_key);
 				if (++anim_index >= anim_keys.length)
 				{
 					anim_index = 0;
-					var entity_keys = spriter_pose.getEntityKeys();
 					if (++entity_index >= entity_keys.length)
 					{
 						entity_index = 0;
@@ -297,28 +369,45 @@ main.start = function ()
 							loading = true; loadFile(file, function ()
 							{
 								loading = false;
-								var entity_keys = spriter_pose.getEntityKeys();
-								spriter_pose.setEntity(entity_keys[entity_index = 0]);
-								var anim_keys = spriter_pose.getAnimKeys();
-								spriter_pose.setAnim(anim_keys[anim_index = 0]);
+								var entity_keys = spriter_data.getEntityKeys();
+								var entity_key = entity_keys[entity_index = 0];
+								spriter_pose.setEntity(entity_key);
+								spriter_pose_next.setEntity(entity_key);
+								var anim_keys = spriter_data.getAnimKeys(entity_key);
+								var anim_key = anim_keys[anim_index = 0];
+								spriter_pose.setAnim(anim_key);
+								var anim_key_next = anim_keys[(anim_index + 1) % anim_keys.length];
+								spriter_pose_next.setAnim(anim_key_next);
 								spriter_pose.setTime(anim_time = 0);
-								anim_length = spriter_pose.curAnimLength() || 1000;
+								spriter_pose_next.setTime(anim_time);
+								anim_length = spriter_data.curAnimLength() || 1000;
 							});
 							return;
 						}
 					}
-					var entity_keys = spriter_pose.getEntityKeys();
-					spriter_pose.setEntity(entity_keys[entity_index]);
+					var entity_keys = spriter_data.getEntityKeys();
+					var entity_key = entity_keys[entity_index];
+					spriter_pose.setEntity(entity_key);
+					spriter_pose_next.setEntity(entity_key);
 				}
-				var anim_keys = spriter_pose.getAnimKeys();
-				spriter_pose.setAnim(anim_keys[anim_index]);
+				var entity_keys = spriter_data.getEntityKeys();
+				var entity_key = entity_keys[entity_index];
+				var anim_keys = spriter_data.getAnimKeys(entity_key);
+				var anim_key = anim_keys[anim_index];
+				spriter_pose.setAnim(anim_key);
+				var anim_key_next = anim_keys[(anim_index + 1) % anim_keys.length];
+				spriter_pose_next.setAnim(anim_key_next);
 				spriter_pose.setTime(anim_time = 0);
+				spriter_pose_next.setTime(anim_time);
 				anim_length = spriter_pose.curAnimLength() || 1000;
 			}
 
 			var entity_keys = spriter_pose.getEntityKeys();
-			var anim_keys = spriter_pose.getAnimKeys();
-			messages.innerHTML = "entity: " + entity_keys[entity_index] + ", anim: " + anim_keys[anim_index] + "<br>" + file.path + file.scon_url;
+			var entity_key = entity_keys[entity_index];
+			var anim_keys = spriter_pose.getAnimKeys(entity_key);
+			var anim_key = anim_keys[anim_index];
+			var anim_key_next = anim_keys[(anim_index + 1) % anim_keys.length];
+			messages.innerHTML = "entity: " + entity_key + ", anim: " + anim_key + ", next anim: " + anim_key_next + "<br>" + file.path + file.spriter_url;
 			if (spriter_pose.event_array.length > 0)
 			{
 				messages.innerHTML += "<br>events: " + spriter_pose.event_array;
@@ -358,6 +447,124 @@ main.start = function ()
 		if (loading) { return; }
 
 		spriter_pose.strike();
+		spriter_pose_next.strike();
+
+		// blend next pose into pose
+		spriter_pose.bone_array.forEach(function (bone, bone_index)
+		{
+			var bone_next = spriter_pose_next.bone_array[bone_index];
+			spriter.Space.tween(bone.local_space, bone_next.local_space, anim_blend, 1, bone.local_space);
+
+			var parent_bone = spriter_pose.bone_array[bone.parent_index];
+			if (parent_bone)
+			{
+				spriter.Space.combine(parent_bone.world_space, bone.local_space, bone.world_space);
+			}
+			else
+			{
+				bone.world_space.copy(bone.local_space);
+			}
+		});
+
+		spriter_pose.object_array.forEach(function (object, object_index)
+		{
+			var object_next = spriter_pose_next.object_array[object_index];
+			switch (object.type)
+			{
+			case 'sprite':
+				if (anim_blend >= 0.5)
+				{
+					object.folder_index = object_next.folder_index;
+					object.file_index = object_next.file_index;
+					object.pivot.copy(object_next.pivot);
+				}
+				break;
+			}
+		});
+
+		// compute object world space
+		spriter_pose.object_array.forEach(function (object)
+		{
+			switch (object.type)
+			{
+			case 'sprite':
+				var bone = spriter_pose.bone_array[object.parent_index];
+				if (bone)
+				{
+					spriter.Space.combine(bone.world_space, object.local_space, object.world_space);
+				}
+				else
+				{
+					object.world_space.copy(object.local_space);
+				}
+				var folder = spriter_data.folder_array[object.folder_index];
+				var file = folder && folder.file_array[object.file_index];
+				if (file)
+				{
+					var offset_x = (0.5 - object.pivot.x) * file.width;
+					var offset_y = (0.5 - object.pivot.y) * file.height;
+					spriter.Space.translate(object.world_space, offset_x, offset_y);
+				}
+				break;
+			case 'bone':
+				var bone = spriter_pose.bone_array[object.parent_index];
+				if (bone)
+				{
+					spriter.Space.combine(bone.world_space, object.local_space, object.world_space);
+				}
+				else
+				{
+					object.world_space.copy(object.local_space);
+				}
+				break;
+			case 'box':
+				var bone = spriter_pose.bone_array[object.parent_index];
+				if (bone)
+				{
+					spriter.Space.combine(bone.world_space, object.local_space, object.world_space);
+				}
+				else
+				{
+					object.world_space.copy(object.local_space);
+				}
+				var box_info = entity.obj_info_map[object.name];
+				if (box_info)
+				{
+					var offset_x = (0.5 - object.pivot.x) * box_info.w;
+					var offset_y = (0.5 - object.pivot.y) * box_info.h;
+					spriter.Space.translate(object.world_space, offset_x, offset_y);
+				}
+				break;
+			case 'point':
+				var bone = spriter_pose.bone_array[object.parent_index];
+				if (bone)
+				{
+					spriter.Space.combine(bone.world_space, object.local_space, object.world_space);
+				}
+				else
+				{
+					object.world_space.copy(object.local_space);
+				}
+				break;
+			case 'sound':
+				break;
+			case 'entity':
+				var bone = spriter_pose.bone_array[object.parent_index];
+				if (bone)
+				{
+					spriter.Space.combine(bone.world_space, object.local_space, object.world_space);
+				}
+				else
+				{
+					object.world_space.copy(object.local_space);
+				}
+				break;
+			case 'variable':
+				break;
+			default:
+				throw new Error(object.type);
+			}
+		});
 
 		if (ctx)
 		{
@@ -376,11 +583,15 @@ main.start = function ()
 			if (enable_render_ctx2d)
 			{
 				render_ctx2d.drawPose(spriter_pose, atlas_data);
+				//ctx.translate(0, -10);
+				//render_ctx2d.drawPose(spriter_pose_next, atlas_data);
 			}
 
 			if (enable_render_debug_pose)
 			{
 				render_ctx2d.drawDebugPose(spriter_pose, atlas_data);
+				//ctx.translate(0, -10);
+				//render_ctx2d.drawDebugPose(spriter_pose_next, atlas_data);
 			}
 		}
 
@@ -401,6 +612,8 @@ main.start = function ()
 			if (enable_render_webgl)
 			{
 				render_webgl.drawPose(spriter_pose, atlas_data);
+				//mat3x3Translate(gl_projection, 0, -10);
+				//render_webgl.drawPose(spriter_pose_next, atlas_data);
 			}
 		}
 	}
