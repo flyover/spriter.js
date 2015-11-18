@@ -504,12 +504,67 @@ main.start = function ()
 			}
 		});
 
-		// blend next pose into pose
+		var spin = 1;
+
+		// blend next pose bone into pose bone
 		spriter_pose.bone_array.forEach(function (bone, bone_index)
 		{
 			var bone_next = spriter_pose_next.bone_array[bone_index];
-			spriter.Space.tween(bone.local_space, bone_next.local_space, anim_blend, 1, bone.local_space);
+			if (!bone_next) { return; }
+			spriter.Space.tween(bone.local_space, bone_next.local_space, anim_blend, spin, bone.local_space);
+		});
 
+		// blend next pose object into pose object
+		spriter_pose.object_array.forEach(function (object, object_index)
+		{
+			var object_next = spriter_pose_next.object_array[object_index];
+			if (object_next) { return; }
+			switch (object.type)
+			{
+			case 'sprite':
+				spriter.Space.tween(object.local_space, object_next.local_space, anim_blend, spin, object.local_space);
+				if (anim_blend >= 0.5)
+				{
+					object.folder_index = object_next.folder_index;
+					object.file_index = object_next.file_index;
+					object.pivot.copy(object_next.pivot);
+				}
+				object.alpha = spriter.tween(object.alpha, object_next.alpha, anim_blend);
+				break;
+			case 'bone':
+				spriter.Space.tween(object.local_space, object_next.local_space, anim_blend, spin, object.local_space);
+				break;
+			case 'box':
+				spriter.Space.tween(object.local_space, object_next.local_space, anim_blend, spin, object.local_space);
+				if (anim_blend >= 0.5)
+				{
+					object.pivot.copy(object_next.pivot);
+				}
+				break;
+			case 'point':
+				spriter.Space.tween(object.local_space, object_next.local_space, anim_blend, spin, object.local_space);
+				break;
+			case 'sound':
+				if (anim_blend >= 0.5)
+				{
+					object.name = object_next.name;
+				}
+				object.volume = spriter.tween(object.volume, object_next.volume, anim_blend);
+				object.panning = spriter.tween(object.panning, object_next.panning, anim_blend);
+				break;
+			case 'entity':
+				spriter.Space.tween(object.local_space, object_next.local_space, anim_blend, spin, object.local_space);
+				break;
+			case 'variable':
+				break;
+			default:
+				throw new Error(object.type);
+			}
+		});
+
+		// compute bone world space
+		spriter_pose.bone_array.forEach(function (bone, bone_index)
+		{
 			var parent_bone = spriter_pose.bone_array[bone.parent_index];
 			if (parent_bone)
 			{
@@ -518,22 +573,6 @@ main.start = function ()
 			else
 			{
 				bone.world_space.copy(bone.local_space);
-			}
-		});
-
-		spriter_pose.object_array.forEach(function (object, object_index)
-		{
-			var object_next = spriter_pose_next.object_array[object_index];
-			switch (object.type)
-			{
-			case 'sprite':
-				if (anim_blend >= 0.5)
-				{
-					object.folder_index = object_next.folder_index;
-					object.file_index = object_next.file_index;
-					object.pivot.copy(object_next.pivot);
-				}
-				break;
 			}
 		});
 
