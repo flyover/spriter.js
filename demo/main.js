@@ -115,6 +115,14 @@ main.start = function ()
 
 	add_checkbox_control("2D Debug Pose", enable_render_debug_pose, function (checked) { enable_render_debug_pose = checked; });
 
+	// sound player (Web Audio Context)
+	var player_web = {};
+	player_web.ctx = AudioContext && new AudioContext();
+	player_web.mute = true;
+	player_web.sounds = {};
+
+	add_checkbox_control("Mute", player_web.mute, function (checked) { player_web.mute = checked; });
+
 	var spriter_data = null;
 	var spriter_pose = null;
 	var spriter_pose_next = null;
@@ -217,23 +225,6 @@ main.start = function ()
 							counter_dec();
 						}})(page));
 					});
-
-					// with an atlas, still need to load the sound files
-					spriter_data.folder_array.forEach(function (folder)
-					{
-						folder.file_array.forEach(function (file)
-						{
-							switch (file.type)
-							{
-							case 'image':
-								break;
-							case 'sound':
-							default:
-								console.log("TODO: load", file.type, file.name);
-								break;
-							}
-						});
-					});
 				}
 				else
 				{
@@ -256,6 +247,7 @@ main.start = function ()
 								}})(file));
 								break;
 							case 'sound':
+								break;
 							default:
 								console.log("TODO: load", file.type, file.name);
 								break;
@@ -263,6 +255,43 @@ main.start = function ()
 						});
 					});
 				}
+
+				// with an atlas, still need to load the sound files
+				spriter_data.folder_array.forEach(function (folder)
+				{
+					folder.file_array.forEach(function (file)
+					{
+						switch (file.type)
+						{
+						case 'sound':
+							if (player_web.ctx)
+							{
+								counter_inc();
+								loadSound(file_path + file.name, (function (file) { return function (err, buffer)
+								{
+									if (err)
+									{
+										console.log("error loading sound", file.name);
+									}
+									player_web.ctx.decodeAudioData(buffer, function (buffer)
+									{
+										player_web.sounds[file.name] = buffer;
+									},
+									function (err)
+									{
+										console.log("error decoding sound", file.name);
+									});
+									counter_dec();
+								}})(file));
+							}
+							else
+							{
+								console.log("TODO: load", file.type, file.name);
+							}
+							break;
+						}
+					});
+				});
 
 				counter_dec();
 			});
@@ -280,11 +309,11 @@ main.start = function ()
 		files.push(file);
 	}
 
-	//add_file("GreyGuy/", "player.scon", "player.tps.json");
-	//add_file("GreyGuyPlus/", "player_006.scon", "player_006.tps.json");
+	add_file("GreyGuy/", "player.scon", "player.tps.json");
+	add_file("GreyGuyPlus/", "player_006.scon", "player_006.tps.json");
 
 	//add_file("SpriterExamples/BoxTagVariable/", "player.scon");
-	add_file("SpriterExamples/GreyGuyCharMaps/", "player_001.scon");
+	//add_file("SpriterExamples/GreyGuyCharMaps/", "player_001.scon");
 	//add_file("SpriterExamples/GreyGuyPlusSoundAndSubEntity/", "player_006.scon");
 	//add_file("SpriterExamples/PointsTriggers/", "gunner_player_smaller_head.scon");
 	//add_file("SpriterExamples/Variable/", "LetterBot.scon");
@@ -380,7 +409,8 @@ main.start = function ()
 								spriter_pose_next.setAnim(anim_key_next);
 								spriter_pose.setTime(anim_time = 0);
 								spriter_pose_next.setTime(anim_time);
-								anim_length = spriter_data.curAnimLength() || 1000;
+								anim_length = spriter_pose.curAnimLength() || 1000;
+								anim_length_next = spriter_pose.curAnimLength() || 1000;
 							});
 							return;
 						}
@@ -400,6 +430,7 @@ main.start = function ()
 				spriter_pose.setTime(anim_time = 0);
 				spriter_pose_next.setTime(anim_time);
 				anim_length = spriter_pose.curAnimLength() || 1000;
+				anim_length_next = spriter_pose.curAnimLength() || 1000;
 			}
 
 			var entity_keys = spriter_pose.getEntityKeys();
@@ -448,6 +479,30 @@ main.start = function ()
 
 		spriter_pose.strike();
 		spriter_pose_next.strike();
+
+		spriter_pose.sound_array.forEach(function (sound)
+		{
+			if (!player_web.mute)
+			{
+				if (player_web.ctx)
+				{
+					var source = player_web.ctx.createBufferSource();
+					source.buffer = player_web.sounds[sound.name];
+					var gain = player_web.ctx.createGain();
+					gain.gain = sound.volume;
+					var stereo_panner = player_web.ctx.createStereoPanner();
+					stereo_panner.pan.value = sound.panning;
+					source.connect(gain);
+					gain.connect(stereo_panner);
+					stereo_panner.connect(player_web.ctx.destination);
+					source.start(0);
+				}
+				else
+				{
+					console.log("TODO: play sound", sound.name, sound.volume, sound.panning);
+				}
+			}
+		});
 
 		// blend next pose into pose
 		spriter_pose.bone_array.forEach(function (bone, bone_index)
@@ -527,6 +582,7 @@ main.start = function ()
 				{
 					object.world_space.copy(object.local_space);
 				}
+				var entity = spriter_pose.curEntity();
 				var box_info = entity.obj_info_map[object.name];
 				if (box_info)
 				{
@@ -660,4 +716,34 @@ function loadImage (url, callback)
 	image.addEventListener('load', function (event) { callback(null, image); }, false);
 	image.src = url;
 	return image;	
+}
+
+function loadSound (url, callback)
+{
+	var req = new XMLHttpRequest();
+	if (url)
+	{
+		req.open("GET", url, true);
+		req.responseType = 'arraybuffer';
+		req.addEventListener('error', function (event) { callback("error", null); }, false);
+		req.addEventListener('abort', function (event) { callback("abort", null); }, false);
+		req.addEventListener('load', function (event)
+		{
+			if (req.status === 200)
+			{
+				callback(null, req.response);
+			}
+			else
+			{
+				callback(req.response, null);
+			}
+		},
+		false);
+		req.send();
+	}
+	else
+	{
+		callback("error", null);
+	}
+	return req;
 }
