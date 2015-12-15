@@ -81,7 +81,7 @@ renderCtx2D.prototype.drawPose = function (spriter_pose, atlas_data)
 				ctxApplySpace(ctx, object.world_space);
 				ctx.scale(file.width/2, file.height/2);
 				ctxApplyAtlasSitePosition(ctx, site);
-				ctx.globalAlpha = object.alpha;
+				ctx.globalAlpha *= object.alpha;
 				ctxDrawImageMesh(ctx, triangles, positions, texcoords, image, site, page);
 				ctx.restore();
 			}
