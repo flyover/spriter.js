@@ -693,21 +693,21 @@ main.start = function ()
 		if (gl)
 		{
 			var gl_projection = render_webgl.gl_projection;
-			mat3x3Identity(gl_projection);
-			mat3x3Ortho(gl_projection, -gl.canvas.width/2, gl.canvas.width/2, -gl.canvas.height/2, gl.canvas.height/2);
+			mat4x4Identity(gl_projection);
+			mat4x4Ortho(gl_projection, -gl.canvas.width/2, gl.canvas.width/2, -gl.canvas.height/2, gl.canvas.height/2, -1, 1);
 
 			if (enable_render_ctx2d && enable_render_webgl)
 			{
-				mat3x3Translate(gl_projection, gl.canvas.width/4, 0);
+				mat4x4Translate(gl_projection, gl.canvas.width/4, 0, 0);
 			}
 
-			mat3x3Translate(gl_projection, -camera_x, -camera_y);
-			mat3x3Scale(gl_projection, camera_zoom, camera_zoom);
+			mat4x4Translate(gl_projection, -camera_x, -camera_y, 0);
+			mat4x4Scale(gl_projection, camera_zoom, camera_zoom, camera_zoom);
 
 			if (enable_render_webgl)
 			{
 				render_webgl.drawPose(spriter_pose, atlas_data);
-				//mat3x3Translate(gl_projection, 0, -10);
+				//mat4x4Translate(gl_projection, 0, -10, 0);
 				//render_webgl.drawPose(spriter_pose_next, atlas_data);
 			}
 		}

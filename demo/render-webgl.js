@@ -10,7 +10,7 @@ renderWebGL = function (gl)
 	render.gl = gl;
 	if (!gl) { return; }
 	render.gl_textures = {};
-	render.gl_projection = mat3x3Identity(new Float32Array(9));
+	render.gl_projection = mat4x4Identity(new Float32Array(16));
 	render.gl_modelview = mat3x3Identity(new Float32Array(9));
 	render.gl_modelview_stack = [];
 	render.gl_tex_matrix = mat3x3Identity(new Float32Array(9));
@@ -19,7 +19,7 @@ renderWebGL = function (gl)
 	[
 		"precision mediump int;",
 		"precision mediump float;",
-		"uniform mat3 uProjection;",
+		"uniform mat4 uProjection;",
 		"uniform mat3 uModelview;",
 		"uniform mat3 uTexMatrix;",
 		"attribute vec2 aVertexPosition;", // [ x, y ]
@@ -27,7 +27,7 @@ renderWebGL = function (gl)
 		"varying vec3 vTexCoord;",
 		"void main(void) {",
 		" vTexCoord = uTexMatrix * vec3(aVertexTexCoord, 1.0);",
-		" gl_Position = vec4(uProjection * uModelview * vec3(aVertexPosition, 1.0), 1.0);",
+		" gl_Position = uProjection * vec4(uModelview * vec3(aVertexPosition, 1.0), 1.0);",
 		"}"
 	];
 	var gl_mesh_shader_fs_src =
@@ -128,6 +128,7 @@ renderWebGL.prototype.loadPose = function (spriter_pose, atlas_data, images)
 			var image = images[image_key];
 			var gl_texture = render.gl_textures[image_key] = gl.createTexture();
 			gl.bindTexture(gl.TEXTURE_2D, gl_texture);
+			gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl_min_filter);
 			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl_mag_filter);
@@ -148,6 +149,7 @@ renderWebGL.prototype.loadPose = function (spriter_pose, atlas_data, images)
 					var image = images[image_key];
 					var gl_texture = render.gl_textures[image_key] = gl.createTexture();
 					gl.bindTexture(gl.TEXTURE_2D, gl_texture);
+					gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
 					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -209,7 +211,7 @@ renderWebGL.prototype.drawPose = function (spriter_pose, atlas_data)
 				mat3x3ApplyAtlasSiteTexcoord(gl_tex_matrix, site);
 				vec4Identity(gl_color); gl_color[3] = object.alpha;
 				gl.useProgram(gl_shader.program);
-				gl.uniformMatrix3fv(gl_shader.uniforms['uProjection'], false, gl_projection);
+				gl.uniformMatrix4fv(gl_shader.uniforms['uProjection'], false, gl_projection);
 				gl.uniformMatrix3fv(gl_shader.uniforms['uModelview'], false, gl_modelview);
 				gl.uniformMatrix3fv(gl_shader.uniforms['uTexMatrix'], false, gl_tex_matrix);
 				gl.uniform4fv(gl_shader.uniforms['uColor'], gl_color);
@@ -372,6 +374,74 @@ function mat3x3ApplyAtlasSitePosition (m, site)
 		mat3x3Translate(m, 2*site.offset_x - (site.original_w - site.w), (site.original_h - site.h) - 2*site.offset_y);
 		mat3x3Scale(m, site.w, site.h);
 	}
+	return m;
+}
+
+function mat4x4Identity (m)
+{
+	m[1] = m[2] = m[3] = m[4] = 
+	m[6] = m[7] = m[8] = m[9] = 
+	m[11] = m[12] = m[13] = m[14] = 0.0;
+	m[0] = m[5] = m[10] = m[15] = 1.0;
+	return m;
+}
+
+function mat4x4Copy (m, other)
+{
+	m.set(other);
+	return m;
+}
+
+function mat4x4Ortho(m, l, r, b, t, n, f)
+{
+	var lr = 1 / (l - r);
+	var bt = 1 / (b - t);
+	var nf = 1 / (n - f);
+	m[ 0] = -2 * lr;
+	m[ 5] = -2 * bt;
+	m[10] = 2 * nf;
+	m[12] = (l + r) * lr;
+	m[13] = (t + b) * bt;
+	m[14] = (f + n) * nf;
+	return m;
+}
+
+function mat4x4Translate (m, x, y, z)
+{
+	z = z || 0;
+	m[12] += m[0] * x + m[4] * y + m[ 8] * z;
+	m[13] += m[1] * x + m[5] * y + m[ 9] * z;
+	m[14] += m[2] * x + m[6] * y + m[10] * z;
+	m[15] += m[3] * x + m[7] * y + m[11] * z;
+	return m;
+}
+
+function mat4x4RotateCosSinZ (m, c, s)
+{
+	var a_x = m[0], a_y = m[1], a_z = m[2], a_w = m[3];
+	var b_x = m[4], b_y = m[5], b_z = m[6], b_w = m[7];
+	m[0] = a_x * c + b_x * s;
+	m[1] = a_y * c + b_y * s;
+	m[2] = a_z * c + b_z * s;
+	m[3] = a_w * c + b_w * s;
+	m[4] = b_x * c - a_x * s;
+	m[5] = b_y * c - a_y * s;
+	m[6] = b_z * c - a_z * s;
+	m[7] = b_w * c - a_w * s;
+	return m;
+}
+
+function mat4x4RotateZ (m, angle)
+{
+	return mat4x4RotateCosSinZ(m, Math.cos(angle), Math.sin(angle));
+}
+
+function mat4x4Scale (m, x, y, z)
+{
+	z = z || 1;
+	m[0] *= x; m[1] *= x; m[ 2] *= x; m[ 3] *= x;
+	m[4] *= y; m[5] *= y; m[ 6] *= y; m[ 7] *= y;
+	m[8] *= z; m[9] *= z; m[10] *= z; m[11] *= z;
 	return m;
 }
 
