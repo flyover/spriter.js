@@ -140,6 +140,10 @@ main.start = function ()
 
 	add_range_control("Anim Blend", anim_blend, 0.0, 1.0, 0.01, function (value) { anim_blend = value; });
 
+	var alpha = 1.0;
+
+	add_range_control("Alpha", alpha, 0.0, 1.0, 0.01, function (value) { alpha = value; });
+
 	var loadFile = function (file, callback)
 	{
 		render_ctx2d.dropPose(spriter_pose, atlas_data);
@@ -663,6 +667,8 @@ main.start = function ()
 
 		if (ctx)
 		{
+			ctx.globalAlpha = alpha;
+
 			// origin at center, x right, y up
 			ctx.translate(ctx.canvas.width/2, ctx.canvas.height/2); ctx.scale(1, -1);
 
@@ -692,6 +698,9 @@ main.start = function ()
 
 		if (gl)
 		{
+			var gl_color = render_webgl.gl_color;
+			gl_color[3] = alpha;
+
 			var gl_projection = render_webgl.gl_projection;
 			mat4x4Identity(gl_projection);
 			mat4x4Ortho(gl_projection, -gl.canvas.width/2, gl.canvas.width/2, -gl.canvas.height/2, gl.canvas.height/2, -1, 1);
