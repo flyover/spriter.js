@@ -3754,18 +3754,78 @@ spriter.Pose.prototype.strike = function ()
 		pose.sound_array = [];
 		anim.soundline_array.forEach(function (soundline)
 		{
-			var keyframe_array = soundline.keyframe_array;
-			var keyframe_index = spriter.Keyframe.find(keyframe_array, time);
-			if (keyframe_index !== -1)
+			function add_sound (sound_keyframe)
 			{
-				var keyframe = keyframe_array[keyframe_index];
-				if (((elapsed_time < 0) && ((time <= keyframe.time) && (keyframe.time <= prev_time))) ||
-					((elapsed_time > 0) && ((prev_time <= keyframe.time) && (keyframe.time <= time))))
+				var folder = pose.data.folder_array[sound_keyframe.sound.folder_index];
+				var file = folder && folder.file_array[sound_keyframe.sound.file_index];
+				//console.log(prev_time, sound_keyframe.time, time, "sound", file.name);
+				pose.sound_array.push({ name: file.name, volume: sound_keyframe.sound.volume, panning: sound_keyframe.sound.panning });
+			}
+
+			if (elapsed_time < 0)
+			{
+				if (wrapped_min)
 				{
-					var folder = pose.data.folder_array[keyframe.sound.folder_index];
-					var file = folder && folder.file_array[keyframe.sound.file_index];
-					//console.log(prev_time, keyframe.time, time, "sound", file.name);
-					pose.sound_array.push({ name: file.name, volume: keyframe.sound.volume, panning: keyframe.sound.panning });
+					// min    prev_time           time      max
+					//  |         |                |         |
+					//  ----------x                o<---------
+					// all events between min_time and prev_time, not including prev_time
+					// all events between max_time and time
+					soundline.keyframe_array.forEach(function (sound_keyframe)
+					{
+						if (((anim.min_time <= sound_keyframe.time) && (sound_keyframe.time < prev_time)) || 
+							((time <= sound_keyframe.time) && (sound_keyframe.time <= anim.max_time)))
+						{
+							add_sound(sound_keyframe);
+						}
+					});
+				}
+				else
+				{
+					// min       time          prev_time    max
+					//  |         |                |         |
+					//            o<---------------x
+					// all events between time and prev_time, not including prev_time
+					soundline.keyframe_array.forEach(function (sound_keyframe)
+					{
+						if ((time <= sound_keyframe.time) && (sound_keyframe.time < prev_time))
+						{
+							add_sound(sound_keyframe);
+						}
+					});
+				}
+			}
+			else
+			{
+				if (wrapped_max)
+				{
+					// min       time          prev_time    max
+					//  |         |                |         |
+					//  --------->o                x----------
+					// all events between prev_time and max_time, not including prev_time
+					// all events between min_time and time
+					soundline.keyframe_array.forEach(function (sound_keyframe)
+					{
+						if (((anim.min_time <= sound_keyframe.time) && (sound_keyframe.time <= time)) || 
+							((prev_time < sound_keyframe.time) && (sound_keyframe.time <= anim.max_time)))
+						{
+							add_sound(sound_keyframe);
+						}
+					});
+				}
+				else
+				{
+					// min    prev_time           time      max
+					//  |         |                |         |
+					//            x--------------->o
+					// all events between prev_time and time, not including prev_time
+					soundline.keyframe_array.forEach(function (sound_keyframe)
+					{
+						if ((prev_time < sound_keyframe.time) && (sound_keyframe.time <= time))
+						{
+							add_sound(sound_keyframe);
+						}
+					});
 				}
 			}
 		});
@@ -3774,16 +3834,76 @@ spriter.Pose.prototype.strike = function ()
 		pose.event_array = [];
 		anim.eventline_array.forEach(function (eventline)
 		{
-			var keyframe_array = eventline.keyframe_array;
-			var keyframe_index = spriter.Keyframe.find(keyframe_array, time);
-			if (keyframe_index !== -1)
+			function add_event (event_keyframe)
 			{
-				var keyframe = keyframe_array[keyframe_index];
-				if (((elapsed_time < 0) && ((time <= keyframe.time) && (keyframe.time <= prev_time))) ||
-					((elapsed_time > 0) && ((prev_time <= keyframe.time) && (keyframe.time <= time))))
+				//console.log(prev_time, keyframe.time, time, "event", eventline.name);
+				pose.event_array.push(eventline.name);
+			}
+
+			if (elapsed_time < 0)
+			{
+				if (wrapped_min)
 				{
-					//console.log(prev_time, keyframe.time, time, "event", eventline.name);
-					pose.event_array.push(eventline.name);
+					// min    prev_time           time      max
+					//  |         |                |         |
+					//  ----------x                o<---------
+					// all events between min_time and prev_time, not including prev_time
+					// all events between max_time and time
+					eventline.keyframe_array.forEach(function (event_keyframe)
+					{
+						if (((anim.min_time <= event_keyframe.time) && (event_keyframe.time < prev_time)) || 
+							((time <= event_keyframe.time) && (event_keyframe.time <= anim.max_time)))
+						{
+							add_event(event_keyframe);
+						}
+					});
+				}
+				else
+				{
+					// min       time          prev_time    max
+					//  |         |                |         |
+					//            o<---------------x
+					// all events between time and prev_time, not including prev_time
+					eventline.keyframe_array.forEach(function (event_keyframe)
+					{
+						if ((time <= event_keyframe.time) && (event_keyframe.time < prev_time))
+						{
+							add_event(event_keyframe);
+						}
+					});
+				}
+			}
+			else
+			{
+				if (wrapped_max)
+				{
+					// min       time          prev_time    max
+					//  |         |                |         |
+					//  --------->o                x----------
+					// all events between prev_time and max_time, not including prev_time
+					// all events between min_time and time
+					eventline.keyframe_array.forEach(function (event_keyframe)
+					{
+						if (((anim.min_time <= event_keyframe.time) && (event_keyframe.time <= time)) || 
+							((prev_time < event_keyframe.time) && (event_keyframe.time <= anim.max_time)))
+						{
+							add_event(event_keyframe);
+						}
+					});
+				}
+				else
+				{
+					// min    prev_time           time      max
+					//  |         |                |         |
+					//            x--------------->o
+					// all events between prev_time and time, not including prev_time
+					eventline.keyframe_array.forEach(function (event_keyframe)
+					{
+						if ((prev_time < event_keyframe.time) && (event_keyframe.time <= time))
+						{
+							add_event(event_keyframe);
+						}
+					});
 				}
 			}
 		});
@@ -3793,22 +3913,82 @@ spriter.Pose.prototype.strike = function ()
 			// process tagline
 			if (anim.meta.tagline)
 			{
-				var keyframe_array = anim.meta.tagline.keyframe_array;
-				var keyframe_index = spriter.Keyframe.find(keyframe_array, time);
-				if (keyframe_index !== -1)
+				function add_tag (tag_keyframe)
 				{
-					var keyframe = keyframe_array[keyframe_index];
-					if (((elapsed_time < 0) && ((time <= keyframe.time) && (keyframe.time <= prev_time))) ||
-						((elapsed_time > 0) && ((prev_time <= keyframe.time) && (keyframe.time <= time))))
+					pose.tag_array = [];
+					tag_keyframe.tag_array.forEach(function (tag)
 					{
-						pose.tag_array = [];
-						keyframe.tag_array.forEach(function (tag)
+						var tag_def = pose.data.tag_def_array[tag.tag_def_index];
+						pose.tag_array.push(tag_def.name);
+					});
+					pose.tag_array = pose.tag_array.sort();
+					//console.log(prev_time, tag_keyframe.time, time, "tag", pose.tag_array);
+				}
+
+				if (elapsed_time < 0)
+				{
+					if (wrapped_min)
+					{
+						// min    prev_time           time      max
+						//  |         |                |         |
+						//  ----------x                o<---------
+						// all events between min_time and prev_time, not including prev_time
+						// all events between max_time and time
+						anim.meta.tagline.keyframe_array.forEach(function (tag_keyframe)
 						{
-							var tag_def = pose.data.tag_def_array[tag.tag_def_index];
-							pose.tag_array.push(tag_def.name);
+							if (((anim.min_time <= tag_keyframe.time) && (tag_keyframe.time < prev_time)) || 
+								((time <= tag_keyframe.time) && (tag_keyframe.time <= anim.max_time)))
+							{
+								add_tag(tag_keyframe);
+							}
 						});
-						pose.tag_array = pose.tag_array.sort();
-						//console.log(prev_time, keyframe.time, time, "tag", pose.tag_array);
+					}
+					else
+					{
+						// min       time          prev_time    max
+						//  |         |                |         |
+						//            o<---------------x
+						// all events between time and prev_time, not including prev_time
+						anim.meta.tagline.keyframe_array.forEach(function (tag_keyframe)
+						{
+							if ((time <= tag_keyframe.time) && (tag_keyframe.time < prev_time))
+							{
+								add_tag(tag_keyframe);
+							}
+						});
+					}
+				}
+				else
+				{
+					if (wrapped_max)
+					{
+						// min       time          prev_time    max
+						//  |         |                |         |
+						//  --------->o                x----------
+						// all events between prev_time and max_time, not including prev_time
+						// all events between min_time and time
+						anim.meta.tagline.keyframe_array.forEach(function (tag_keyframe)
+						{
+							if (((anim.min_time <= tag_keyframe.time) && (tag_keyframe.time <= time)) || 
+								((prev_time < tag_keyframe.time) && (tag_keyframe.time <= anim.max_time)))
+							{
+								add_tag(tag_keyframe);
+							}
+						});
+					}
+					else
+					{
+						// min    prev_time           time      max
+						//  |         |                |         |
+						//            x--------------->o
+						// all events between prev_time and time, not including prev_time
+						anim.meta.tagline.keyframe_array.forEach(function (tag_keyframe)
+						{
+							if ((prev_time < tag_keyframe.time) && (tag_keyframe.time <= time))
+							{
+								add_tag(tag_keyframe);
+							}
+						});
 					}
 				}
 			}
