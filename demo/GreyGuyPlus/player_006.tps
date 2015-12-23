@@ -6,7 +6,7 @@
         <key>texturePackerVersion</key>
         <string>4.0.1</string>
         <key>fileName</key>
-        <string>C:/Users/iburns/Dropbox/sandbox.js/spriter.js/demo/GreyGuyPlus/player_006.tps</string>
+        <string>C:/Users/iburns/Dropbox/sandbox/spriter.js/demo/GreyGuyPlus/player_006.tps</string>
         <key>autoSDSettings</key>
         <array>
             <struct type="AutoSDSettings">
