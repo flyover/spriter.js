@@ -361,7 +361,7 @@ main.start = function ()
 		spriter_pose.setTime(anim_time = 0);
 		spriter_pose_next.setTime(anim_time);
 		anim_length = spriter_pose.curAnimLength() || 1000;
-		anim_length_next = spriter_pose.curAnimLength() || 1000;
+		anim_length_next = spriter_pose_next.curAnimLength() || 1000;
 	});
 
 	var prev_time = 0;
@@ -375,7 +375,7 @@ main.start = function ()
 		if (!loading)
 		{
 			spriter_pose.update(dt * anim_rate);
-			var anim_rate_next = anim_rate * anim_length / anim_length_next;
+			var anim_rate_next = anim_rate * anim_length_next / anim_length;
 			spriter_pose_next.update(dt * anim_rate_next);
 
 			anim_time += dt * anim_rate;
@@ -414,7 +414,7 @@ main.start = function ()
 								spriter_pose.setTime(anim_time = 0);
 								spriter_pose_next.setTime(anim_time);
 								anim_length = spriter_pose.curAnimLength() || 1000;
-								anim_length_next = spriter_pose.curAnimLength() || 1000;
+								anim_length_next = spriter_pose_next.curAnimLength() || 1000;
 							});
 							return;
 						}
@@ -434,7 +434,7 @@ main.start = function ()
 				spriter_pose.setTime(anim_time = 0);
 				spriter_pose_next.setTime(anim_time);
 				anim_length = spriter_pose.curAnimLength() || 1000;
-				anim_length_next = spriter_pose.curAnimLength() || 1000;
+				anim_length_next = spriter_pose_next.curAnimLength() || 1000;
 			}
 
 			var entity_keys = spriter_pose.getEntityKeys();
