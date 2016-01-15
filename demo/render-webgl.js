@@ -199,7 +199,7 @@ renderWebGL.prototype.drawPose = function (spriter_pose, atlas_data)
 			var file = folder.file_array[object.file_index];
 			if (!file) { return; }
 			var site = atlas_data && atlas_data.sites[file.name];
-			var page = site && atlas_data.pages[site.page];
+			var page = site && site.page;
 			var image_key = (page && page.name) || file.name;
 			var gl_texture = gl_textures[image_key];
 			if (gl_texture)

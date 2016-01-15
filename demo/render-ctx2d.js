@@ -72,7 +72,7 @@ renderCtx2D.prototype.drawPose = function (spriter_pose, atlas_data)
 			var file = folder.file_array[object.file_index];
 			if (!file) { return; }
 			var site = atlas_data && atlas_data.sites[file.name];
-			var page = site && atlas_data.pages[site.page];
+			var page = site && site.page;
 			var image_key = (page && page.name) || file.name;
 			var image = images[image_key];
 			if (image && image.complete)
@@ -142,7 +142,7 @@ renderCtx2D.prototype.drawDebugPose = function (spriter_pose, atlas_data)
 			var file = folder.file_array[object.file_index];
 			if (!file) { return; }
 			var site = atlas_data && atlas_data.sites[file.name];
-			var page = site && atlas_data.pages[site.page];
+			var page = site && site.page;
 			var image_key = (page && page.name) || file.name;
 			var image = images[image_key];
 			ctx.save();

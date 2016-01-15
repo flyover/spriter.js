@@ -3913,7 +3913,7 @@ spriter.Pose.prototype.strike = function ()
 			// process tagline
 			if (anim.meta.tagline)
 			{
-				function add_tag (tag_keyframe)
+				var add_tag = function (tag_keyframe)
 				{
 					pose.tag_array = [];
 					tag_keyframe.tag_array.forEach(function (tag)

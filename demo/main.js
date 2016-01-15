@@ -437,9 +437,9 @@ main.start = function ()
 				anim_length_next = spriter_pose_next.curAnimLength() || 1000;
 			}
 
-			var entity_keys = spriter_pose.getEntityKeys();
+			var entity_keys = spriter_data.getEntityKeys();
 			var entity_key = entity_keys[entity_index];
-			var anim_keys = spriter_pose.getAnimKeys(entity_key);
+			var anim_keys = spriter_data.getAnimKeys(entity_key);
 			var anim_key = anim_keys[anim_index];
 			var anim_key_next = anim_keys[(anim_index + 1) % anim_keys.length];
 			messages.innerHTML = "entity: " + entity_key + ", anim: " + anim_key + ", next anim: " + anim_key_next + "<br>" + file.path + file.spriter_url;
