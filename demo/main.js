@@ -459,10 +459,10 @@ main.start = function ()
 			if (var_map_keys.length > 0)
 			{
 				messages.innerHTML += "<br>vars: ";
-				for (var key in spriter_pose.var_map)
+				var_map_keys.forEach(function(key)
 				{
 					messages.innerHTML += "<br>" + key + " : " + spriter_pose.var_map[key];
-				}
+				});
 			}
 		}
 

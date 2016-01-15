@@ -225,7 +225,7 @@ atlas.Data.prototype.exportAtlasTextLines = function (lines)
 		else if (page.wrap_t === 'Repeat') { repeat = 'y'; }
 		lines.push("repeat: " + repeat);
 
-		for (var site_key in data.sites)
+		Object.keys(data.sites).forEach(function (site_key)
 		{
 			var site = data.sites[site_key];
 			if (site.page !== page) { continue; }
@@ -236,7 +236,7 @@ atlas.Data.prototype.exportAtlasTextLines = function (lines)
 			lines.push("  orig: " + site.original_w + ", " + site.original_h);
 			lines.push("  offset: " + site.offset_x + ", " + site.offset_y);
 			lines.push("  index: " + site.index);
-		}
+		});
 	});
 
 	return lines;
@@ -269,20 +269,21 @@ atlas.Data.prototype.importTpsTextPage = function (tps_text, page_index)
 
 	var tps_json = JSON.parse(tps_text);
 
+	var page = data.pages[page_index] = new atlas.Page();
+
 	if (tps_json.meta)
 	{
 		// TexturePacker only supports one page
-		var page = data.pages[page_index] = new atlas.Page();
 		page.w = tps_json.meta.size.w;
 		page.h = tps_json.meta.size.h;
 		page.name = tps_json.meta.image;
 	}
 
-	if (tps_json.frames) for (var i in tps_json.frames)
+	Object.keys(tps_json.frames).forEach(function (key)
 	{
-		var frame = tps_json.frames[i];
-		var site = data.sites[i] = new atlas.Site();
-		site.page = page_index;
+		var frame = tps_json.frames[key];
+		var site = data.sites[key] = new atlas.Site();
+		site.page = page;
 		site.x = frame.frame.x;
 		site.y = frame.frame.y;
 		site.w = frame.frame.w;
@@ -292,7 +293,7 @@ atlas.Data.prototype.importTpsTextPage = function (tps_text, page_index)
 		site.offset_y = (frame.spriteSourceSize && frame.spriteSourceSize.y) || 0;
 		site.original_w = (frame.sourceSize && frame.sourceSize.w) || site.w;
 		site.original_h = (frame.sourceSize && frame.sourceSize.h) || site.h;
-	}
+	});
 
 	return data;
 }

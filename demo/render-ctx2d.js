@@ -23,12 +23,6 @@ renderCtx2D = function (ctx)
 renderCtx2D.prototype.dropPose = function (spriter_pose, atlas_data)
 {
 	var render = this;
-
-	for (var image_key in render.images)
-	{
-		delete render.images[image_key];
-	}
-
 	render.images = {};
 	render.skin_info_map = {};
 }

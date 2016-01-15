@@ -58,12 +58,12 @@ renderWebGL.prototype.dropPose = function (spriter_pose, atlas_data)
 	var gl = render.gl;
 	if (!gl) { return; }
 
-	for (var image_key in render.gl_textures)
+	Object.keys(render.gl_textures).forEach(function (image_key)
 	{
 		var gl_texture = render.gl_textures[image_key];
 		gl.deleteTexture(gl_texture); gl_texture = null;
 		delete render.gl_textures[image_key];
-	}
+	});
 
 	render.gl_textures = {};
 }
