@@ -1,10 +1,10 @@
-goog.provide('renderWebGL');
+goog.provide('RenderWebGL');
 
 /**
  * @constructor
  * @param {WebGLRenderingContext} gl
  */
-renderWebGL = function(gl) {
+RenderWebGL = function(gl) {
   var render = this;
   render.gl = gl;
   if (!gl) {
@@ -51,7 +51,7 @@ renderWebGL = function(gl) {
  * @param {spriter.Pose} spriter_pose
  * @param {atlas.Data} atlas_data
  */
-renderWebGL.prototype.dropPose = function(spriter_pose, atlas_data) {
+RenderWebGL.prototype.dropPose = function(spriter_pose, atlas_data) {
   var render = this;
   var gl = render.gl;
   if (!gl) {
@@ -74,7 +74,7 @@ renderWebGL.prototype.dropPose = function(spriter_pose, atlas_data) {
  * @param {atlas.Data} atlas_data
  * @param {Object.<string,HTMLImageElement>} images
  */
-renderWebGL.prototype.loadPose = function(spriter_pose, atlas_data, images) {
+RenderWebGL.prototype.loadPose = function(spriter_pose, atlas_data, images) {
   var render = this;
   var gl = render.gl;
   if (!gl) {
@@ -188,7 +188,7 @@ renderWebGL.prototype.loadPose = function(spriter_pose, atlas_data, images) {
  * @param {spriter.Pose} spriter_pose
  * @param {atlas.Data} atlas_data
  */
-renderWebGL.prototype.drawPose = function(spriter_pose, atlas_data) {
+RenderWebGL.prototype.drawPose = function(spriter_pose, atlas_data) {
   var render = this;
   var gl = render.gl;
   if (!gl) {

@@ -2,8 +2,8 @@ goog.provide('main');
 
 goog.require('spriter');
 goog.require('atlas');
-goog.require('renderCtx2D');
-goog.require('renderWebGL');
+goog.require('RenderCtx2D');
+goog.require('RenderWebGL');
 
 main.start = function() {
   document.body.style.margin = '0px';
@@ -78,7 +78,7 @@ main.start = function() {
     canvas.style.height = canvas.height + 'px';
   });
 
-  var render_ctx2d = new renderCtx2D(ctx);
+  var render_ctx2d = new RenderCtx2D(ctx);
 
   var canvas_gl = document.createElement('canvas');
   canvas_gl.width = window.innerWidth;
@@ -99,7 +99,7 @@ main.start = function() {
     canvas_gl.style.height = canvas_gl.height + 'px';
   });
 
-  var render_webgl = new renderWebGL(gl);
+  var render_webgl = new RenderWebGL(gl);
 
   var camera_x = 0;
   var camera_y = 0;

@@ -1,10 +1,10 @@
-goog.provide('renderCtx2D');
+goog.provide('RenderCtx2D');
 
 /**
  * @constructor
  * @param {CanvasRenderingContext2D} ctx
  */
-renderCtx2D = function(ctx) {
+RenderCtx2D = function(ctx) {
   var render = this;
   render.ctx = ctx;
   render.images = {};
@@ -19,7 +19,7 @@ renderCtx2D = function(ctx) {
  * @param {spriter.Pose} spriter_pose
  * @param {atlas.Data} atlas_data
  */
-renderCtx2D.prototype.dropPose = function(spriter_pose, atlas_data) {
+RenderCtx2D.prototype.dropPose = function(spriter_pose, atlas_data) {
   var render = this;
   render.images = {};
   render.skin_info_map = {};
@@ -31,7 +31,7 @@ renderCtx2D.prototype.dropPose = function(spriter_pose, atlas_data) {
  * @param {atlas.Data} atlas_data
  * @param {Object.<string,HTMLImageElement>} images
  */
-renderCtx2D.prototype.loadPose = function(spriter_pose, atlas_data, images) {
+RenderCtx2D.prototype.loadPose = function(spriter_pose, atlas_data, images) {
   var render = this;
 
   render.images = images;
@@ -42,7 +42,7 @@ renderCtx2D.prototype.loadPose = function(spriter_pose, atlas_data, images) {
  * @param {spriter.Pose} spriter_pose
  * @param {atlas.Data} atlas_data
  */
-renderCtx2D.prototype.drawPose = function(spriter_pose, atlas_data) {
+RenderCtx2D.prototype.drawPose = function(spriter_pose, atlas_data) {
   var render = this;
   var ctx = render.ctx;
 
@@ -92,7 +92,7 @@ renderCtx2D.prototype.drawPose = function(spriter_pose, atlas_data) {
  * @param {spriter.Pose} spriter_pose
  * @param {atlas.Data} atlas_data
  */
-renderCtx2D.prototype.drawDebugPose = function(spriter_pose, atlas_data) {
+RenderCtx2D.prototype.drawDebugPose = function(spriter_pose, atlas_data) {
   var render = this;
   var ctx = render.ctx;
 
