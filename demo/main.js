@@ -159,9 +159,8 @@ main.start = function() {
   });
 
   var loadFile = function(file, callback) {
-    render_ctx2d.dropPose(spriter_pose, atlas_data);
-    render_webgl.dropPose(spriter_pose, atlas_data);
-    render_webgl.dropPose(spriter_pose_next, atlas_data);
+    render_ctx2d.dropData(spriter_data, atlas_data);
+    render_webgl.dropData(spriter_data, atlas_data);
 
     spriter_pose = null;
     spriter_pose_next = null;
@@ -205,9 +204,8 @@ main.start = function() {
         }
         var counter_dec = function() {
           if (--counter === 0) {
-            render_ctx2d.loadPose(spriter_pose, atlas_data, images);
-            render_webgl.loadPose(spriter_pose, atlas_data, images);
-            render_webgl.loadPose(spriter_pose_next, atlas_data, images);
+            render_ctx2d.loadData(spriter_data, atlas_data, images);
+            render_webgl.loadData(spriter_data, atlas_data, images);
             callback();
           }
         }

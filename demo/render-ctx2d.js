@@ -16,10 +16,10 @@ RenderCtx2D = function(ctx) {
 
 /**
  * @return {void}
- * @param {spriter.Pose} spriter_pose
+ * @param {spriter.Data} spriter_data
  * @param {atlas.Data} atlas_data
  */
-RenderCtx2D.prototype.dropPose = function(spriter_pose, atlas_data) {
+RenderCtx2D.prototype.dropData = function(spriter_data, atlas_data) {
   var render = this;
   render.images = {};
   render.skin_info_map = {};
@@ -27,11 +27,11 @@ RenderCtx2D.prototype.dropPose = function(spriter_pose, atlas_data) {
 
 /**
  * @return {void}
- * @param {spriter.Pose} spriter_pose
+ * @param {spriter.Data} spriter_data
  * @param {atlas.Data} atlas_data
  * @param {Object.<string,HTMLImageElement>} images
  */
-RenderCtx2D.prototype.loadPose = function(spriter_pose, atlas_data, images) {
+RenderCtx2D.prototype.loadData = function(spriter_data, atlas_data, images) {
   var render = this;
 
   render.images = images;
