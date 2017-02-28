@@ -3372,8 +3372,8 @@ spriter.Pose.prototype.strike = function() {
           var folder = pose.data.folder_array[object.folder_index];
           var file = folder && folder.file_array[object.file_index];
           if (file) {
-            var offset_x = (0.5 - object.pivot.x) * file.width;
-            var offset_y = (0.5 - object.pivot.y) * file.height;
+            var offset_x = (0.5 - file.pivot.x) * file.width;
+            var offset_y = (0.5 - file.pivot.y) * file.height;
             spriter.Space.translate(object.world_space, offset_x, offset_y);
           }
           break;
