@@ -1141,7 +1141,9 @@ spriter.SpriteObject.prototype.copy = function(other) {
  */
 spriter.SpriteObject.prototype.tween = function(other, tween, spin) {
   spriter.Space.tween(this.local_space, other.local_space, tween, spin, this.local_space);
-  //spriter.Vector.tween(this.pivot, other.pivot, tween, this.pivot);
+  if (!this.default_pivot) {
+    spriter.Vector.tween(this.pivot, other.pivot, tween, this.pivot);
+  }
   this.alpha = spriter.tween(this.alpha, other.alpha, tween);
 }
 
@@ -3372,8 +3374,9 @@ spriter.Pose.prototype.strike = function() {
           var folder = pose.data.folder_array[object.folder_index];
           var file = folder && folder.file_array[object.file_index];
           if (file) {
-            var offset_x = (0.5 - object.pivot.x) * file.width;
-            var offset_y = (0.5 - object.pivot.y) * file.height;
+            var pivot = (object.default_pivot) ? file.pivot : object.pivot;
+            var offset_x = (0.5 - pivot.x) * file.width;
+            var offset_y = (0.5 - pivot.y) * file.height;
             spriter.Space.translate(object.world_space, offset_x, offset_y);
           }
           break;
