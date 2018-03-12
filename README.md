@@ -1,3 +1,5 @@
+There is a new version of this project written in TypeScript.  https://github.com/flyover/spriter.ts
+
 spriter.js
 ==========
 
